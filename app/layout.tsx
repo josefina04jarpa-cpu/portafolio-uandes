@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,9 +26,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} relative min-h-screen antialiased`}
       >
-        {children}
+        <Image
+          src="/background-network.png"
+          alt=""
+          fill
+          priority
+          className="pointer-events-none fixed inset-0 object-cover"
+        />
+        <div className="relative z-10">{children}</div>
       </body>
     </html>
   );

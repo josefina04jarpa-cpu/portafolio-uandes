@@ -16,6 +16,20 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Acceso a indicadores (equipo Innovación)
+
+Para habilitar el ingreso con correo UANDES y contraseña, crea un archivo `.env.local` en la raíz del proyecto con:
+
+```bash
+INDICADORES_TEAM_PASSWORD=tu_contraseña_de_equipo
+AUTH_SECRET=una_clave_larga_y_segura
+```
+
+- `INDICADORES_TEAM_PASSWORD`: contraseña compartida para el botón **Ingresar**.
+- `AUTH_SECRET`: clave para firmar la sesión.
+
+Si no defines `INDICADORES_TEAM_PASSWORD`, el sistema usa por defecto `Innovacion2026`.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
