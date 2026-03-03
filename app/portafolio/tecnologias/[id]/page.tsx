@@ -112,12 +112,17 @@ export default async function Page({ params }: Params) {
       : undefined,
   };
 
+  const techTitle = String(tech.title || "");
+  const techDescription = String(tech.description || "");
+  const techId = String(tech.id || "");
+  const techInvestigators = String(tech.investigators || "");
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
       <div className="mb-4 text-sm text-gray-600">
         <Link href="/portafolio/tecnologias" className="text-slate-700 hover:underline">Explorar Tecnologías</Link>
         <span className="mx-2">&gt;</span>
-        <span className="font-medium text-slate-900">{tech.title}</span>
+        <span className="font-medium text-slate-900">{techTitle}</span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -134,8 +139,8 @@ export default async function Page({ params }: Params) {
                 <div className="mt-2 text-center text-xs text-gray-500">Ilustración 2D referencial</div>
               </div>
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-slate-900">{tech.title}</h1>
-                <p className="mt-2 text-sm text-gray-600">{tech.description}</p>
+                <h1 className="text-2xl font-bold text-slate-900">{techTitle}</h1>
+                <p className="mt-2 text-sm text-gray-600">{techDescription}</p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   {tech.badges && tech.badges.map((b: string, i: number) => (
@@ -147,9 +152,9 @@ export default async function Page({ params }: Params) {
               <div className="flex flex-col items-end gap-3">
                 <button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Contactar</button>
                 <div className="text-xs text-gray-500">
-                  <div>ID Tecnológico: <span className="font-medium text-slate-900">{tech.id}</span></div>
+                  <div>ID Tecnológico: <span className="font-medium text-slate-900">{techId}</span></div>
                   <div>Tipo: <span className="font-medium text-slate-900">{tech.badges?.[0] ?? "-"}</span></div>
-                  <div>Investigadores: <span className="font-medium text-slate-900">{tech.investigators || "-"}</span></div>
+                  <div>Investigadores: <span className="font-medium text-slate-900">{techInvestigators || "-"}</span></div>
                 </div>
               </div>
             </div>
