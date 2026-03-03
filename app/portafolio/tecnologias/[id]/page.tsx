@@ -116,6 +116,7 @@ export default async function Page({ params }: Params) {
   const techDescription = String(tech.description || "");
   const techId = String(tech.id || "");
   const techInvestigators = String(tech.investigators || "");
+  const techBadges = Array.isArray(tech.badges) ? tech.badges.map((badge) => String(badge || "")).filter(Boolean) : [];
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
@@ -133,7 +134,7 @@ export default async function Page({ params }: Params) {
                 <TechnologyIllustration
                   title={String(tech.title || "")}
                   description={String(tech.description || "")}
-                  badges={Array.isArray(tech.badges) ? tech.badges : []}
+                  badges={techBadges}
                   className="h-36 w-48 rounded-xl"
                 />
                 <div className="mt-2 text-center text-xs text-gray-500">Ilustración 2D referencial</div>
@@ -143,7 +144,7 @@ export default async function Page({ params }: Params) {
                 <p className="mt-2 text-sm text-gray-600">{techDescription}</p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {tech.badges && tech.badges.map((b: string, i: number) => (
+                  {techBadges.map((b, i) => (
                     <span key={i} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium">{b}</span>
                   ))}
                 </div>
@@ -153,7 +154,7 @@ export default async function Page({ params }: Params) {
                 <button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Contactar</button>
                 <div className="text-xs text-gray-500">
                   <div>ID Tecnológico: <span className="font-medium text-slate-900">{techId}</span></div>
-                  <div>Tipo: <span className="font-medium text-slate-900">{tech.badges?.[0] ?? "-"}</span></div>
+                  <div>Tipo: <span className="font-medium text-slate-900">{techBadges[0] ?? "-"}</span></div>
                   <div>Investigadores: <span className="font-medium text-slate-900">{techInvestigators || "-"}</span></div>
                 </div>
               </div>
