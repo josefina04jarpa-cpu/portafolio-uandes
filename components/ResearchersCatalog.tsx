@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type ResearcherItem = {
   id: string;
@@ -12,6 +12,31 @@ type ResearcherItem = {
 };
 
 const ITEMS_PER_PAGE = 12;
+
+function normalizeSearchText(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildNameAliases(name: string): string[] {
+  const normalized = normalizeSearchText(name);
+  const parts = normalized.split(" ").filter(Boolean);
+  if (parts.length === 0) return [];
+
+  const aliases = new Set<string>();
+  aliases.add(normalized);
+
+  if (parts.length >= 2) aliases.add(`${parts[0]} ${parts[1]}`);
+  if (parts.length >= 3) aliases.add(`${parts[0]} ${parts[2]}`);
+  if (parts.length >= 4) aliases.add(`${parts[0]} ${parts[3]}`);
+  if (parts.length >= 2) aliases.add(`${parts[0]} ${parts[parts.length - 1]}`);
+
+  return Array.from(aliases);
+}
 
 export default function ResearchersCatalog({ items }: { items: ResearcherItem[] }) {
   const [query, setQuery] = useState("");
@@ -40,14 +65,16 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
   );
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     return items.filter((item) => {
-      const matchesSearch =
-        !q ||
-        item.name.toLowerCase().includes(q) ||
-        item.unit.toLowerCase().includes(q) ||
-        item.faculty.toLowerCase().includes(q) ||
-        item.email.toLowerCase().includes(q);
+      const searchableFields = [
+        ...buildNameAliases(item.name),
+        normalizeSearchText(item.unit),
+        normalizeSearchText(item.faculty),
+        normalizeSearchText(item.email),
+      ];
+
+      const matchesSearch = !q || searchableFields.some((field) => field.includes(q));
 
       const matchesFaculty =
         facultyFilter === "Todas las facultades" ||
@@ -61,17 +88,9 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
     });
   }, [items, query, facultyFilter, unitFilter]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [query, facultyFilter, unitFilter]);
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
-
-  const pageStart = (currentPage - 1) * ITEMS_PER_PAGE;
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
   const paginated = filtered.slice(pageStart, pageStart + ITEMS_PER_PAGE);
 
   return (
@@ -81,14 +100,20 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
           <input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             placeholder="Buscar investigador..."
             className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm shadow-sm md:flex-1"
           />
 
           <select
             value={facultyFilter}
-            onChange={(e) => setFacultyFilter(e.target.value)}
+            onChange={(e) => {
+              setFacultyFilter(e.target.value);
+              setCurrentPage(1);
+            }}
             className="rounded-lg border border-gray-200 px-3 py-3 text-sm"
           >
             {facultyOptions.map((option) => (
@@ -100,7 +125,10 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
 
           <select
             value={unitFilter}
-            onChange={(e) => setUnitFilter(e.target.value)}
+            onChange={(e) => {
+              setUnitFilter(e.target.value);
+              setCurrentPage(1);
+            }}
             className="rounded-lg border border-gray-200 px-3 py-3 text-sm"
           >
             {unitOptions.map((option) => (
@@ -153,20 +181,20 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
         )}
 
         <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-          <span className="text-sm text-gray-600">Página {currentPage} de {totalPages}</span>
+          <span className="text-sm text-gray-600">Página {safeCurrentPage} de {totalPages}</span>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => Math.max(1, Math.min(prev, totalPages) - 1))}
+              disabled={safeCurrentPage === 1}
               className="rounded-lg border border-gray-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Anterior
             </button>
 
             <button
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, Math.min(prev, totalPages) + 1))}
+              disabled={safeCurrentPage === totalPages}
               className="rounded-lg border border-gray-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Siguiente

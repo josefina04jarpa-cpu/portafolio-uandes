@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getExecutiveContactForProject } from "../../../../lib/executiveProfiles";
+import ExecutiveContactButton from "../../../../components/ExecutiveContactButton";
 import { getAllProjects, getProjectById } from "../../../../lib/proyectos";
 import { getProjectAssociations } from "../../../../lib/entityLinks";
 import { getComunicacionesByProyecto } from "../../../../lib/comunicaciones";
@@ -77,6 +79,7 @@ export default async function Page({ params, searchParams }: Params) {
   const resumenProyecto = String(project.raw["PROY_Descripcion"] || project.description || "").trim();
   const directorProyecto = String(project.raw["PROY_InvestigadorLiderUANDES"] || project.investigador || "").trim();
   const nombreProyecto = String(project.raw["PROY_NombreProyecto"] || project.title || "").trim();
+  const executiveContact = await getExecutiveContactForProject(project);
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
@@ -312,7 +315,17 @@ export default async function Page({ params, searchParams }: Params) {
               <div>
                 Investigador: <span className="font-medium text-slate-900">{display(project.investigador)}</span>
               </div>
+              <div>
+                Ejecutivo a cargo: <span className="font-medium text-slate-900">{display(executiveContact?.name || "-")}</span>
+              </div>
             </div>
+
+            {executiveContact?.email ? (
+              <ExecutiveContactButton
+                email={executiveContact.email}
+                subject={`Consulta proyecto: ${display(project.title)}`}
+              />
+            ) : null}
           </div>
         </aside>
       </div>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllResearchers, getResearcherById } from "../../../../lib/investigadores";
@@ -48,6 +49,43 @@ function normalizeBasic(value: unknown): string {
     .replace(/\p{Diacritic}/gu, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+const researcherProfilePhotos: Array<{ match: string; fileName: string }> = [
+  { match: "maria francisca valenzuela", fileName: "María Francisca Valenzuela.png" },
+  { match: "sebastian goldsack", fileName: "Sebastián goldsack.png" },
+  { match: "matias petersen", fileName: "Matías Petersen.png" },
+  { match: "carlos irarrazabal", fileName: "Carlos Irarrazabal.png" },
+  { match: "guillermo bustamante", fileName: "Guillermo Bustamante.png" },
+  { match: "sebastian illanes", fileName: "Sebastián Illanes.png" },
+  { match: "jorge gaete", fileName: "Jorge Gaete.png" },
+  { match: "consuelo san martin", fileName: "Consuelo San Martin.png" },
+  { match: "felipe scott", fileName: "Felipe Scott.png" },
+  { match: "ximena farfan", fileName: "Ximena Farfan.png" },
+  { match: "wilfredo gonzalez", fileName: "Wilfredo González.png" },
+  { match: "alejandra chaparro", fileName: "Alejandra Chaparro.png" },
+  { match: "paulo diaz", fileName: "Paulo Díaz.png" },
+  { match: "maria jose bendek", fileName: "María José Bendek.png" },
+  { match: "matias recabarren", fileName: "Matías Recabarren.png" },
+  { match: "pelusa orellana", fileName: "Pelusa Orellana.png" },
+  { match: "pamela inostroza", fileName: "Pamela Inostroza.png" },
+  { match: "anil sadarangani", fileName: "Anil Sadarangani.png" },
+  { match: "danilo segovia", fileName: "Danilo Segovia.png" },
+];
+
+function getResearcherProfilePhoto(name: string): string | null {
+  const normalized = normalizeBasic(name);
+  if (!normalized) return null;
+
+  const normalizedWords = new Set(normalized.split(" ").filter(Boolean));
+
+  const match = researcherProfilePhotos.find((item) => {
+    if (normalized.includes(item.match)) return true;
+    const tokens = normalizeBasic(item.match).split(" ").filter(Boolean);
+    return tokens.length > 0 && tokens.every((token) => normalizedWords.has(token));
+  });
+  if (!match) return null;
+  return encodeURI(`/${match.fileName}`);
 }
 
 function buildResearcherNameCandidates(fullName: string): string[] {
@@ -168,6 +206,7 @@ export default async function Page({ params, searchParams }: Params) {
   const comunicaciones = keepBestSocialPostsForInvestigador(
     getComunicacionesByInvestigador(researcherNameForComunicaciones),
   );
+  const profilePhoto = getResearcherProfilePhoto(researcherNameForComunicaciones || name);
   const legalItems = (await getLegalPI()).filter((item) => matchResearcherToPI(researcherNameForComunicaciones, item));
   const ultimaActualizacion = comunicaciones
     .map((item) => item.COM_Fecha)
@@ -185,8 +224,12 @@ export default async function Page({ params, searchParams }: Params) {
       <div className="space-y-6">
         <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
           <div className="flex items-start gap-6">
-            <div className="h-20 w-20 rounded-lg bg-gray-100 flex items-center justify-center text-xl font-semibold text-gray-600">
-              {name !== "-" ? name.slice(0, 2).toUpperCase() : "--"}
+            <div className="h-20 w-20 overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center text-xl font-semibold text-gray-600">
+              {profilePhoto ? (
+                <Image src={profilePhoto} alt={`Foto de ${name}`} width={80} height={80} className="h-full w-full object-cover" />
+              ) : (
+                <>{name !== "-" ? name.slice(0, 2).toUpperCase() : "--"}</>
+              )}
             </div>
 
             <div className="flex-1">

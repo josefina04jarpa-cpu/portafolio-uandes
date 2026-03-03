@@ -31,6 +31,18 @@ export type Communication = {
   COM_ThumbnailPath: string;
 };
 
+export type CommunicationPlatform = "Todos" | "Instagram" | "LinkedIn";
+
+export type MonthlyImpressionsPoint = {
+  month: number;
+  value: number;
+};
+
+export type MonthlyImpressionsOptions = {
+  year?: number;
+  platform?: CommunicationPlatform;
+};
+
 type CommunicationRaw = Record<string, string>;
 
 const REQUIRED_KEYS: Array<keyof Communication> = [
@@ -202,6 +214,97 @@ function parseMetricValue(value: string): number {
   const num = Number(cleaned);
   if (Number.isNaN(num) || !Number.isFinite(num)) return 0;
   return num;
+}
+
+function pickFlexibleValue(row: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = normalizeFieldValue(row[key]);
+    if (value) return value;
+  }
+  return "";
+}
+
+export function parseDateFlexible(value: string): Date | null {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const ddmmyyyy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyy) {
+    const day = Number(ddmmyyyy[1]);
+    const month = Number(ddmmyyyy[2]);
+    const year = Number(ddmmyyyy[3]);
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+      return date;
+    }
+    return null;
+  }
+
+  const yyyymmdd = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (yyyymmdd) {
+    const year = Number(yyyymmdd[1]);
+    const month = Number(yyyymmdd[2]);
+    const day = Number(yyyymmdd[3]);
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+      return date;
+    }
+    return null;
+  }
+
+  const fallback = new Date(raw);
+  if (Number.isNaN(fallback.getTime())) return null;
+  return fallback;
+}
+
+export function getPlatformFromRow(row: Partial<Communication> | Record<string, unknown>): "Instagram" | "LinkedIn" | "Otros" {
+  const source = row as Record<string, unknown>;
+  const platformText = normalizeKey(
+    pickFlexibleValue(source, ["COM_TipoMedio", "COM_Medio", "tipoMedio", "medio", "TipoMedio", "Medio"]),
+  );
+
+  if (platformText.includes("instagram")) return "Instagram";
+  if (platformText.includes("linkedin")) return "LinkedIn";
+  return "Otros";
+}
+
+export function getMonthlyImpressions(
+  rows: Array<Partial<Communication> | Record<string, unknown>>,
+  options: MonthlyImpressionsOptions = {},
+): MonthlyImpressionsPoint[] {
+  const year = options.year ?? 2025;
+  const platform = options.platform ?? "Todos";
+
+  const monthlyValues = Array.from({ length: 12 }, (_, index) => ({
+    month: index,
+    value: 0,
+  }));
+
+  for (const row of rows || []) {
+    const source = row as Record<string, unknown>;
+    const rowPlatform = getPlatformFromRow(source);
+
+    if (platform !== "Todos" && rowPlatform !== platform) continue;
+
+    const dateRaw = pickFlexibleValue(source, ["COM_Fecha", "fecha", "Fecha"]);
+    const date = parseDateFlexible(dateRaw);
+    if (!date) continue;
+    if (date.getFullYear() !== year) continue;
+
+    const impressionsRaw = pickFlexibleValue(source, [
+      "COM_Impresiones",
+      "impresiones",
+      "Impresiones",
+      "impressions",
+      "IMPRESIONES",
+    ]);
+
+    const impressions = parseMetricValue(impressionsRaw);
+    const monthIndex = date.getMonth();
+    monthlyValues[monthIndex].value += impressions;
+  }
+
+  return monthlyValues;
 }
 
 function socialScore(item: Communication): number {

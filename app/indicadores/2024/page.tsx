@@ -4,6 +4,7 @@ import { AUTH_COOKIE_NAME, getSessionEmailFromToken } from "../../../lib/auth";
 import { getIndicatorsByYear } from "../../../lib/indicadores";
 import { getMetasRectoria } from "../../../lib/metasRectoria";
 import IndicadoresSectionTabs from "../../../components/IndicadoresSectionTabs";
+import IndicadoresSubmenu from "../../../components/IndicadoresSubmenu";
 
 export default async function Page() {
   const cookieStore = await cookies();
@@ -20,6 +21,8 @@ export default async function Page() {
       <TopNavigation active="indicadores" indicadoresYear={2024} />
 
       <main>
+        <IndicadoresSubmenu active="resumen" />
+
         <IndicadoresSectionTabs
           isAuthenticated={Boolean(sessionEmail)}
           indicadores={all}
