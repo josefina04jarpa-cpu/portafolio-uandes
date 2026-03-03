@@ -17,7 +17,27 @@ type Props = {
   trlByYear?: TRLYearPoint[];
 };
 
+function asStringValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => asStringValue(item).trim())
+    .filter((item) => item.length > 0);
+}
+
 export default function TechnologySidebar({ tech, trlByYear = [] }: Props) {
+  const faculty = asStringValue(tech.faculty) || asStringValue(tech.TECN_Industria) || "-";
+  const techId = asStringValue(tech.TECN_ID) || asStringValue(tech.id) || "-";
+  const investigators = asStringValue(tech.investigators) || asStringValue(tech.TECN_Investigadores) || "-";
+  const estado = asStringValue(tech.estado) || asStringValue(tech.TECN_Activo) || "-";
+  const patente = asStringValue(tech.patente) || "-";
+  const sources = asStringArray(tech.sources);
+
   const trlSeries = useMemo(() => {
     return trlByYear
       .filter((row) => Number.isFinite(row.year))
@@ -85,18 +105,18 @@ export default function TechnologySidebar({ tech, trlByYear = [] }: Props) {
       <div className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
         <div className="text-sm font-medium text-slate-900">Información de Facultad</div>
         <div className="mt-3 text-xs text-gray-600 space-y-2">
-          <div>Facultad: <span className="font-medium text-slate-900">{tech.faculty || tech.TECN_Industria || '-'}</span></div>
-          <div>ID: <span className="font-medium text-slate-900">{tech.TECN_ID || tech.id || '-'}</span></div>
-          <div>PI: <span className="font-medium text-slate-900">{tech.investigators || tech.TECN_Investigadores || '-'}</span></div>
-          <div>Estado: <span className="inline-block ml-2 rounded-full px-2 py-0.5 text-xs bg-gray-100">{tech.estado || tech.TECN_Activo || '-'}</span></div>
-          <div>Patente: <span className="font-medium text-slate-900">{tech.patente || '-'}</span></div>
+          <div>Facultad: <span className="font-medium text-slate-900">{faculty}</span></div>
+          <div>ID: <span className="font-medium text-slate-900">{techId}</span></div>
+          <div>PI: <span className="font-medium text-slate-900">{investigators}</span></div>
+          <div>Estado: <span className="inline-block ml-2 rounded-full px-2 py-0.5 text-xs bg-gray-100">{estado}</span></div>
+          <div>Patente: <span className="font-medium text-slate-900">{patente}</span></div>
         </div>
 
-        {tech.sources && (
+        {sources.length > 0 && (
           <div className="mt-3">
             <div className="text-xs text-gray-500">Fuentes</div>
             <ul className="mt-2 text-xs text-gray-700 list-disc list-inside">
-              {tech.sources.map((s: string, i: number) => <li key={i}>{s}</li>)}
+              {sources.map((source, i) => <li key={i}>{source}</li>)}
             </ul>
           </div>
         )}
