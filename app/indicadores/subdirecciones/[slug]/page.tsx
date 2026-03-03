@@ -248,7 +248,7 @@ export default async function Page({ params }: Params) {
                   </div>
 
                   {incubadoraSummary.successCases.slice(0, 8).map((item, index) => (
-                    <article key={item.title} className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+                    <article key={`${item.project}-${item.year}-${index}`} className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
                       <div className="mb-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
                         Caso de éxito #{index + 1}
                       </div>
