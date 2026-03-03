@@ -24,6 +24,17 @@ type ExportSheetData = {
 };
 
 type TabsProps = Props & { exportSheetData?: ExportSheetData };
+type IpData = {
+  nombre?: unknown;
+  tipo?: unknown;
+  numeroSolicitud?: unknown;
+  fechaSolicitud?: unknown;
+  numeroRegistro?: unknown;
+  fechaRegistro?: unknown;
+  vigenciaHasta?: unknown;
+  fechaTerminoProteccion?: unknown;
+  pais?: unknown;
+};
 
 export default function TechnologyTabs({ tech, summaryDescription, legalItems = [], exportSheetData }: TabsProps) {
   const tabs = ["Resumen", "Detalles y potencial", "Propiedad intelectual", "Notas internas"];
@@ -58,10 +69,11 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
     return text;
   };
 
-  const ip = tech.ip ?? {};
+  const ipRecord: Record<string, unknown> =
+    typeof tech.ip === "object" && tech.ip !== null ? (tech.ip as Record<string, unknown>) : {};
   const primaryLegal = legalItems[0];
 
-  const effectiveIp = primaryLegal
+  const effectiveIp: IpData = primaryLegal
     ? {
         nombre: primaryLegal.LGL_NombrePI,
         tipo: [primaryLegal.LGL_CategPI, primaryLegal.LGL_SubcatPI].filter(Boolean).join(" · "),
@@ -73,7 +85,17 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
         fechaTerminoProteccion: primaryLegal.LGL_FechaExpiracion,
         pais: primaryLegal.LGL_Pais,
       }
-    : ip;
+    : {
+        nombre: ipRecord.nombre,
+        tipo: ipRecord.tipo,
+        numeroSolicitud: ipRecord.numeroSolicitud,
+        fechaSolicitud: ipRecord.fechaSolicitud,
+        numeroRegistro: ipRecord.numeroRegistro,
+        fechaRegistro: ipRecord.fechaRegistro,
+        vigenciaHasta: ipRecord.vigenciaHasta,
+        fechaTerminoProteccion: ipRecord.fechaTerminoProteccion,
+        pais: ipRecord.pais,
+      };
 
   const hasRegistro = displayValue(effectiveIp.numeroRegistro) !== "-";
   const summaryTargetId = `technology-summary-export-${String(tech.id || "detalle")}`;
