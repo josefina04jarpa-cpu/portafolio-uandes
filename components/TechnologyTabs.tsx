@@ -99,6 +99,8 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
 
   const hasRegistro = displayValue(effectiveIp.numeroRegistro) !== "-";
   const summaryTargetId = `technology-summary-export-${String(tech.id || "detalle")}`;
+  const detailText = displayValue(tech.TECN_Comentario || tech.longDescription || "Sin detalles adicionales.");
+  const internalNotesText = displayValue(tech.internal_notes || "Sin notas internas.");
 
   const renderContent = () => {
     switch (active) {
@@ -117,7 +119,7 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
           </div>
         );
       case 1:
-        return (<div className="text-sm text-gray-700">{tech.TECN_Comentario || tech.longDescription || 'Sin detalles adicionales.'}</div>);
+        return (<div className="text-sm text-gray-700">{detailText}</div>);
       case 2:
         return (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -198,7 +200,7 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
         );
       case 3:
         if (modoPublico) return <div className="text-sm text-gray-500">Notas internas ocultas en modo público.</div>;
-        return (<div className="text-sm text-gray-700">{tech.internal_notes || 'Sin notas internas.'}</div>);
+        return (<div className="text-sm text-gray-700">{internalNotesText}</div>);
       default:
         return null;
     }
