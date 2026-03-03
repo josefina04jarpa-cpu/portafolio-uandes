@@ -225,7 +225,7 @@ async function buildData(): Promise<CachedData> {
     "proyecto-bici": buildAccumulator(),
   };
 
-  const projectMap = new Map<string, ReturnType<(typeof projects)[number]>>();
+  const projectMap = new Map<string, (typeof projects)[number]>();
   const projectAreaByName = new Map<string, SubdireccionSlug>();
   for (const project of projects) {
     projectMap.set(project.id, project);
