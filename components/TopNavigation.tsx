@@ -5,7 +5,7 @@ import { AUTH_COOKIE_NAME, getSessionEmailFromToken } from "../lib/auth";
 import IndicadoresYearSelect from "./IndicadoresYearSelect";
 
 type Props = {
-  active?: "portafolio" | "indicadores";
+  active?: "portafolio" | "indicadores" | "perfil";
   indicadoresYear?: 2024 | 2025;
 };
 
@@ -15,6 +15,7 @@ export default async function TopNavigation({ active = "portafolio", indicadores
   const authenticatedEmail = getSessionEmailFromToken(token);
   const isPortafolio = active === "portafolio";
   const isIndicadores = active === "indicadores";
+  const isPerfil = active === "perfil";
 
   return (
     <header className="border-b bg-white">
@@ -61,15 +62,37 @@ export default async function TopNavigation({ active = "portafolio", indicadores
                 </div>
               </div>
 
+              <div className="group relative">
+                <Link
+                  href="/indicadores"
+                  className={`pb-1 ${
+                    isIndicadores
+                      ? "border-b-2 border-[#C8102E] font-medium text-slate-900"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Indicadores
+                </Link>
+
+                <div className="pointer-events-none absolute left-0 top-full z-50 w-56 rounded-xl bg-black/70 p-2 opacity-0 shadow-lg backdrop-blur-sm transition-all duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                  <Link href="/indicadores" className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10">
+                    General
+                  </Link>
+                  <Link href="/indicadores/subdirecciones" className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10">
+                    Subdirecciones
+                  </Link>
+                </div>
+              </div>
+
               <Link
-                href="/indicadores"
+                href="/mi-perfil"
                 className={`pb-1 ${
-                  isIndicadores
+                  isPerfil
                     ? "border-b-2 border-[#C8102E] font-medium text-slate-900"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                Indicadores
+                Mi perfil
               </Link>
             </nav>
           </div>

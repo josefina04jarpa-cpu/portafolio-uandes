@@ -1,48 +1,144 @@
 import TopNavigation from "../../../components/TopNavigation";
-import PortfolioCatalog from "../../../components/PortfolioCatalog";
+import TechnologiesLandingDashboard from "../../../components/TechnologiesLandingDashboard";
 import { getAllTechnologies } from "../../../lib/tecnologias";
+import { getAllResearchers } from "../../../lib/investigadores";
+import { getTechnologyAssociations } from "../../../lib/entityLinks";
+import { getTRLByTechnologyName } from "../../../lib/trl";
+import { getAllProjects } from "../../../lib/proyectos";
+import { normalizeText } from "../../../lib/normalize";
+
+type LeaderGender = "Femenino" | "Masculino" | "Sin dato";
+
+const FEMALE_NAME_HINTS = new Set([
+  "pamela",
+  "camila",
+  "daniela",
+  "karen",
+  "silvana",
+  "josefina",
+  "ximena",
+  "consuelo",
+  "alejandra",
+  "carolina",
+  "fernanda",
+  "isabel",
+  "maria",
+  "paula",
+  "andrea",
+  "claudia",
+  "veronica",
+  "catalina",
+  "francisca",
+  "valentina",
+  "sofia",
+  "soledad",
+]);
+
+function normalizeNameToken(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferFemaleLeadershipByName(value: string): boolean {
+  const normalized = normalizeNameToken(value);
+  if (!normalized) return false;
+
+  const tokens = normalized.split(" ").filter(Boolean);
+  return tokens.some((token) => FEMALE_NAME_HINTS.has(token));
+}
+
+function normalizeGender(value: string): LeaderGender {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+
+  if (normalized.includes("femen")) return "Femenino";
+  if (normalized.includes("mascul")) return "Masculino";
+  return "Sin dato";
+}
+
+function resolveLeaderGender(rawGender: string, leaderName: string): LeaderGender {
+  const explicitGender = normalizeGender(rawGender);
+  if (explicitGender !== "Sin dato") return explicitGender;
+  return inferFemaleLeadershipByName(leaderName) ? "Femenino" : "Sin dato";
+}
+
+function projectNameCandidates(row: Record<string, string>): string[] {
+  return [row.TECN_NombreProyecto, row.TECN_NombreTecnologia]
+    .map((value) => normalizeText(value || ""))
+    .filter(Boolean);
+}
 
 export default async function Page() {
   const rows = await getAllTechnologies();
+  const researchers = await getAllResearchers();
+  const projects = await getAllProjects();
+  const researchersById = new Map(researchers.map((researcher) => [String(researcher.id), researcher]));
+  const researchersByName = new Map(researchers.map((researcher) => [normalizeText(researcher.name), researcher]));
 
-  const items = rows.map((r, idx) => {
-    const id = (r.TECN_ID || r.TECN_N || r.id || r.ID || Object.values(r)[0] || "").toString();
-    const title = (r.TECN_NombreTecnologia || r.TECN_NombreProyecto || r.title || r.nombre || r.name || r.titulo || "Untitled").toString();
-    const description = (r.TECN_Descripcion || r.TECN_Comentario || r.description || r.descripcion || "").toString();
-    const icon = (r.icon || r.emoji || "").toString();
-    const badgesField = (r.TECN_ProdCateg || r.TECN_ProdSubcateg || r.badges || r.tags || "").toString();
-    const badges = badgesField ? String(badgesField).split(/;|\||,/).map((s) => s.trim()).filter(Boolean) : [];
-    const faculty = (r.TECN_Industria || r.faculty || r.facultad || r.department || "").toString();
-    const ambito = (r.TECN_Ambito || r.ambito || r.scope || "").toString();
-    const estado = (r.TECN_Activo || r.TECN_Transferido || r.estado || r.status || "").toString();
-    const techId = (r.TECN_ID || r.techId || r.tech_id || id).toString();
+  const projectsByName = new Map<string, (typeof projects)[number]>();
+  for (const project of projects) {
+    const candidates = [
+      normalizeText(project.title || ""),
+      normalizeText(project.raw.PROY_NombreProyecto || ""),
+      normalizeText(project.raw.PROY_TituloProyecto || ""),
+    ].filter(Boolean);
 
-    return {
-      ...r,
-      id,
-      title,
-      description,
-      icon,
-      badges,
-      faculty,
-      ambito,
-      estado,
-      techId,
-      __idx: idx,
-    };
-  });
+    for (const candidate of candidates) {
+      if (!projectsByName.has(candidate)) projectsByName.set(candidate, project);
+    }
+  }
+
+  const records = await Promise.all(
+    rows.map(async (row, idx) => {
+      const id = (row.TECN_ID || row.TECN_N || row.id || row.ID || Object.values(row)[0] || "").toString();
+      const title = (row.TECN_NombreTecnologia || row.TECN_NombreProyecto || row.title || row.nombre || row.name || row.titulo || "Untitled").toString();
+      const associations = await getTechnologyAssociations(id);
+      const leadInvestigator = associations.investigators.auto[0];
+      const associationResearcher = leadInvestigator ? researchersById.get(leadInvestigator.id) : null;
+
+      const matchedProject = projectNameCandidates(row)
+        .map((candidate) => projectsByName.get(candidate))
+        .find((project): project is (typeof projects)[number] => Boolean(project));
+
+      const projectInvestigatorName = String(matchedProject?.investigador || matchedProject?.raw.PROY_InvestigadorLiderUANDES || "").trim();
+      const researcherFromProject = researchersByName.get(normalizeText(projectInvestigatorName));
+      const researcher = researcherFromProject || associationResearcher || null;
+
+      const faculty =
+        (researcher?.raw.INV_Facultad || researcher?.raw.INV_Facultad_Unidad || researcher?.unit || row.TECN_Industria || "Sin información").toString();
+
+      const leaderName = String(researcher?.name || projectInvestigatorName || leadInvestigator?.name || "").trim();
+      const leaderGender = resolveLeaderGender(researcher?.raw.INV_Sexo || "", leaderName);
+
+      const trlByYear = await getTRLByTechnologyName(title);
+      const latestWithTrl = [...trlByYear]
+        .sort((a, b) => b.year - a.year)
+        .find((entry) => typeof entry.trl === "number");
+
+      return {
+        id: id || `tech-${idx + 1}`,
+        title,
+        faculty,
+        leaderGender,
+        trl: latestWithTrl?.trl ?? null,
+      };
+    }),
+  );
 
   return (
     <div className="min-h-screen bg-transparent">
       <TopNavigation active="portafolio" />
 
       <main className="max-w-6xl mx-auto px-6 py-10 space-y-8">
-        <section>
-          <h1 className="text-3xl font-bold text-slate-900">Tecnologías</h1>
-          <p className="mt-2 text-sm text-gray-600">Catálogo institucional de tecnologías e iniciativas de Innovación Uandes.</p>
-        </section>
-
-        <PortfolioCatalog items={items} />
+        <TechnologiesLandingDashboard records={records} />
       </main>
     </div>
   );
