@@ -85,14 +85,14 @@ export default function TechnologySidebar({ tech, trlByYear = [] }: Props) {
       <div className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
         <div className="text-sm font-medium text-slate-900">Información de Facultad</div>
         <div className="mt-3 text-xs text-gray-600 space-y-2">
-          <div>Facultad: <span className="font-medium text-slate-900">{tech.faculty || tech.TECN_Industria || '-'}</span></div>
-          <div>ID: <span className="font-medium text-slate-900">{tech.TECN_ID || tech.id || '-'}</span></div>
-          <div>PI: <span className="font-medium text-slate-900">{tech.investigators || tech.TECN_Investigadores || '-'}</span></div>
-          <div>Estado: <span className="inline-block ml-2 rounded-full px-2 py-0.5 text-xs bg-gray-100">{tech.estado || tech.TECN_Activo || '-'}</span></div>
-          <div>Patente: <span className="font-medium text-slate-900">{tech.patente || '-'}</span></div>
+          <div>Facultad: <span className="font-medium text-slate-900">{String(tech.faculty || tech.TECN_Industria || '-')}</span></div>
+          <div>ID: <span className="font-medium text-slate-900">{String(tech.TECN_ID || tech.id || '-')}</span></div>
+          <div>PI: <span className="font-medium text-slate-900">{String(tech.investigators || tech.TECN_Investigadores || '-')}</span></div>
+          <div>Estado: <span className="inline-block ml-2 rounded-full px-2 py-0.5 text-xs bg-gray-100">{String(tech.estado || tech.TECN_Activo || '-')}</span></div>
+          <div>Patente: <span className="font-medium text-slate-900">{String(tech.patente || '-')}</span></div>
         </div>
 
-        {tech.sources && (
+        {Array.isArray(tech.sources) && tech.sources.length > 0 && (
           <div className="mt-3">
             <div className="text-xs text-gray-500">Fuentes</div>
             <ul className="mt-2 text-xs text-gray-700 list-disc list-inside">
