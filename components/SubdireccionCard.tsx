@@ -26,13 +26,13 @@ function formatMetric(value: number | null, compact = false): string {
 
 export default function SubdireccionCard({ item }: Props) {
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-      <div className="absolute left-0 top-0 h-1.5 w-full" style={{ backgroundColor: item.accentColor }} />
+    <article className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm" style={{ "--accent-color": item.accentColor, "--accent-light": `${item.accentColor}20` } as React.CSSProperties}>
+      <div className="absolute left-0 top-0 h-1.5 w-full" style={{ backgroundColor: "var(--accent-color)" }} />
 
       <div className="flex items-start gap-4">
         <div
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xl"
-          style={{ backgroundColor: `${item.accentColor}20` }}
+          style={{ backgroundColor: "var(--accent-light)" }}
         >
           <AreaIcon icon={item.icon} />
         </div>

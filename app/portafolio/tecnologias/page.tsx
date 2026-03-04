@@ -3,7 +3,7 @@ import TechnologiesLandingDashboard from "../../../components/TechnologiesLandin
 import { getAllTechnologies } from "../../../lib/tecnologias";
 import { getAllResearchers } from "../../../lib/investigadores";
 import { getTechnologyAssociations } from "../../../lib/entityLinks";
-import { getTRLByTechnologyName } from "../../../lib/trl";
+import { getTRLByTecnologiaNormalized } from "../../../lib/trl";
 import { getAllProjects } from "../../../lib/proyectos";
 import { normalizeText } from "../../../lib/normalize";
 
@@ -34,6 +34,39 @@ const FEMALE_NAME_HINTS = new Set([
   "soledad",
 ]);
 
+const MALE_NAME_HINTS = new Set([
+  "juan",
+  "jose",
+  "pedro",
+  "pablo",
+  "diego",
+  "felipe",
+  "sebastian",
+  "matias",
+  "francisco",
+  "cristian",
+  "christian",
+  "claudio",
+  "ricardo",
+  "andres",
+  "luis",
+  "miguel",
+  "rodrigo",
+  "jorge",
+  "carlos",
+  "alvaro",
+  "gonzalo",
+  "jaime",
+  "rafael",
+  "eduardo",
+  "manuel",
+  "oscar",
+  "vicente",
+  "tomas",
+  "ignacio",
+  "nicolas",
+]);
+
 function normalizeNameToken(value: string): string {
   return String(value || "")
     .toLowerCase()
@@ -44,12 +77,14 @@ function normalizeNameToken(value: string): string {
     .trim();
 }
 
-function inferFemaleLeadershipByName(value: string): boolean {
+function inferLeadershipGenderByName(value: string): LeaderGender {
   const normalized = normalizeNameToken(value);
-  if (!normalized) return false;
+  if (!normalized) return "Sin dato";
 
   const tokens = normalized.split(" ").filter(Boolean);
-  return tokens.some((token) => FEMALE_NAME_HINTS.has(token));
+  if (tokens.some((token) => FEMALE_NAME_HINTS.has(token))) return "Femenino";
+  if (tokens.some((token) => MALE_NAME_HINTS.has(token))) return "Masculino";
+  return "Sin dato";
 }
 
 function normalizeGender(value: string): LeaderGender {
@@ -67,7 +102,7 @@ function normalizeGender(value: string): LeaderGender {
 function resolveLeaderGender(rawGender: string, leaderName: string): LeaderGender {
   const explicitGender = normalizeGender(rawGender);
   if (explicitGender !== "Sin dato") return explicitGender;
-  return inferFemaleLeadershipByName(leaderName) ? "Femenino" : "Sin dato";
+  return inferLeadershipGenderByName(leaderName);
 }
 
 function projectNameCandidates(row: Record<string, string>): string[] {
@@ -113,12 +148,12 @@ export default async function Page() {
       const researcher = researcherFromProject || associationResearcher || null;
 
       const faculty =
-        (researcher?.raw.INV_Facultad || researcher?.raw.INV_Facultad_Unidad || researcher?.unit || row.TECN_Industria || "Sin información").toString();
+        (researcher?.raw.INV_Facultad_Unidad || "Sin información").toString();
 
       const leaderName = String(researcher?.name || projectInvestigatorName || leadInvestigator?.name || "").trim();
-      const leaderGender = resolveLeaderGender(researcher?.raw.INV_Sexo || "", leaderName);
+      const leaderGender = resolveLeaderGender(researcher?.raw.INV_Genero || "", leaderName);
 
-      const trlByYear = await getTRLByTechnologyName(title);
+      const trlByYear = await getTRLByTecnologiaNormalized(title);
       const latestWithTrl = [...trlByYear]
         .sort((a, b) => b.year - a.year)
         .find((entry) => typeof entry.trl === "number");

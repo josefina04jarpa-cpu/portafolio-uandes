@@ -2,6 +2,9 @@ import { readFile } from "fs/promises";
 import { parse } from "csv-parse/sync";
 import { resolveDataFile } from "./dataPath";
 import { normalizeText } from "./normalize";
+import { normalizeRelationLabel } from "./entityLinks";
+import { getAllTechnologies } from "./tecnologias";
+import { getAllProjects } from "./proyectos";
 
 export type LegalPI = {
   LGL_N: string;
@@ -112,7 +115,7 @@ function toLegalPI(raw: Record<string, string>): LegalPI {
 }
 
 export async function getLegalPI(): Promise<LegalPI[]> {
-  const path = resolveDataFile("Legal PI.csv");
+  const path = resolveDataFile("Legal_PI.csv");
   const rawCsv = await readFile(path, "utf8");
 
   const firstLine = rawCsv.split(/\r?\n/, 1)[0] ?? "";
@@ -191,4 +194,44 @@ export function groupLegalByProduct(items: LegalPI[]): Map<string, LegalPI[]> {
   }
 
   return grouped;
+}
+
+// Relation 9: PI.LGL_NombreProdAsoc → Tecnologia.TECN_NombreTecnologia
+export async function getLegalPIByTecnologiaNormalized(nombreTecnologia: string): Promise<LegalPI[]> {
+  const [legalPI, tecnologias] = await Promise.all([getLegalPI(), getAllTechnologies()]);
+
+  const normalized = normalizeRelationLabel(nombreTecnologia);
+
+  return legalPI.filter((pi) => {
+    const piNorm = normalizeRelationLabel(pi.LGL_NombreProdAsoc);
+    if (piNorm === normalized) return true;
+
+    // Bidirectional fallback: check if any technology name normalizes to the PI product
+    const matchesTecnologia = tecnologias.some((t) => {
+      const tecNorm = normalizeRelationLabel(t["TECN_NombreTecnologia"] || "");
+      return tecNorm === piNorm;
+    });
+
+    return matchesTecnologia;
+  });
+}
+
+// Relation 10: PI.LGL_NombreProdAsoc → Proyectos.PROY_NombreProyecto
+export async function getLegalPIByProyectoNormalized(nombreProyecto: string): Promise<LegalPI[]> {
+  const [legalPI, proyectos] = await Promise.all([getLegalPI(), getAllProjects()]);
+
+  const normalized = normalizeRelationLabel(nombreProyecto);
+
+  return legalPI.filter((pi) => {
+    const piNorm = normalizeRelationLabel(pi.LGL_NombreProdAsoc);
+    if (piNorm === normalized) return true;
+
+    // Bidirectional fallback: check if any project name normalizes to the PI product
+    const matchesProyecto = proyectos.some((p) => {
+      const proyNorm = normalizeRelationLabel(p.title);
+      return proyNorm === piNorm;
+    });
+
+    return matchesProyecto;
+  });
 }

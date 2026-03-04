@@ -70,7 +70,7 @@ export async function getAllResearchers(): Promise<Researcher[]> {
     const unit = pick(raw, ["INV_Facultad_Unidad", "INV_Facultad_Unidad2", "unidad", "facultad", "unit"]);
     const email = pick(raw, ["INV_EmailPrincipal", "INV_EmailSecundario", "email", "correo", "mail"]);
 
-    const candidateId = pick(raw, ["INV_ID", "id", "ID", "investigador_id", "INV_N"]);
+    const candidateId = pick(raw, ["INV_ID", "INV_N", "id", "ID", "investigador_id"]);
     const id = isMissingId(candidateId) ? buildStableId(name, unit, index) : candidateId;
 
     return {

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getAllResearchers, getResearcherById } from "../../../../lib/investigadores";
 import { getInvestigatorAssociations } from "../../../../lib/entityLinks";
 import { getComunicacionesByInvestigador, keepBestSocialPostsForInvestigador } from "../../../../lib/comunicaciones";
-import { getLegalPI, isInTramite, type LegalPI } from "../../../../lib/legal";
+import { getLegalPI, isInTramite, type LegalPI } from "../../../../lib/legal_pi";
 import ComunicacionesSection from "../../../../components/ComunicacionesSection";
 
 type Params = { params: { id: string } | Promise<{ id: string }>; searchParams?: Promise<{ tab?: string }> };

@@ -5,7 +5,9 @@ import ExecutiveContactButton from "../../../../components/ExecutiveContactButto
 import { getAllProjects, getProjectById } from "../../../../lib/proyectos";
 import { getProjectAssociations } from "../../../../lib/entityLinks";
 import { getComunicacionesByProyecto } from "../../../../lib/comunicaciones";
-import { getLegalPI, matchByProduct } from "../../../../lib/legal";
+import { getLegalPI, matchByProduct } from "../../../../lib/legal_pi";
+import { getFinanciamientoByProyectoNormalized } from "../../../../lib/financiamiento";
+import { getAllInstitutions } from "../../../../lib/instituciones";
 import ComunicacionesSection from "../../../../components/ComunicacionesSection";
 import LegalPITab from "../../../../components/LegalPITab";
 import ExportSummaryPdfButton from "../../../../components/ExportSummaryPdfButton";
@@ -80,6 +82,36 @@ export default async function Page({ params, searchParams }: Params) {
   const directorProyecto = String(project.raw["PROY_InvestigadorLiderUANDES"] || project.investigador || "").trim();
   const nombreProyecto = String(project.raw["PROY_NombreProyecto"] || project.title || "").trim();
   const executiveContact = await getExecutiveContactForProject(project);
+  const [financiamientos, allInstitutions] = await Promise.all([
+    getFinanciamientoByProyectoNormalized(String(project.raw["PROY_NombreProyecto"] || project.title || "")),
+    getAllInstitutions(),
+  ]);
+
+  const financedInstitutions = new Map<string, { id: string; name: string; path: string }>();
+  for (const row of financiamientos) {
+    const receptor = String(row.PROF_InstitucReceptora || "").trim();
+    if (!receptor || receptor.toLowerCase() === "n/a") continue;
+
+    const matched = allInstitutions.find((institution) => {
+      const fantasy = String(institution.raw.INST_NombreFantasia || "").trim();
+      const complete = String(institution.raw.INST_NombreCompleto || "").trim();
+      return fantasy === receptor || complete === receptor || institution.name === receptor;
+    });
+
+    if (matched) {
+      financedInstitutions.set(matched.id, {
+        id: matched.id,
+        name: matched.name,
+        path: `/instituciones/${encodeURIComponent(matched.id)}`,
+      });
+    }
+  }
+
+  const institutionsLinked = Array.from(
+    new Map(
+      [...associations.institutions.auto, ...Array.from(financedInstitutions.values())].map((item) => [item.id, item]),
+    ).values(),
+  );
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
@@ -249,11 +281,11 @@ export default async function Page({ params, searchParams }: Params) {
                   )}
 
                   <h3 className="mt-6 text-base font-semibold text-slate-900">Instituciones asociadas</h3>
-                  {associations.institutions.auto.length === 0 ? (
+                  {institutionsLinked.length === 0 ? (
                     <p className="mt-3 text-sm text-gray-600">-</p>
                   ) : (
                     <ul className="mt-3 space-y-2">
-                      {associations.institutions.auto.map((institution) => (
+                      {institutionsLinked.map((institution) => (
                         <li key={`${project.id}-ins-${institution.id}`} className="text-sm text-gray-700">
                           <Link href={institution.path} className="font-medium text-slate-900 hover:underline">{display(institution.name)}</Link>
                         </li>

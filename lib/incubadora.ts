@@ -75,7 +75,7 @@ function dedupeInitiatives(items: IncubadoraInitiative[]): IncubadoraInitiative[
 }
 
 export async function getIncubadoraSummary(): Promise<IncubadoraSummary> {
-  const path = resolveDataFile("Incubadora BBDD completa.csv");
+  const path = resolveDataFile("Empren-Incubadora.csv");
   const rawCsv = await readFile(path, "utf8");
 
   const records = parse(rawCsv, {

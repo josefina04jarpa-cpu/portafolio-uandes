@@ -12,24 +12,6 @@ import { SUBDIRECCIONES } from "../../../../lib/subdireccionesMap";
 
 type Params = { params: { slug: string } | Promise<{ slug: string }> };
 
-const AVATAR_BY_NORMALIZED_NAME: Record<string, string> = {
-  [normalizeText("María Fernanda Gana")]: "/Fernanda Gana.png",
-  [normalizeText("Josefina Jarpa")]: "/Josefina Jarpa.png",
-  [normalizeText("Daniela Sánchez")]: "/Daniela Sánchez.png",
-  [normalizeText("Camila Adonis")]: "/Camila Adonis.png",
-  [normalizeText("Karen Marquez")]: "/Karen Marquez.png",
-  [normalizeText("Claudio Arriaza")]: "/Claudio Arriaza.png",
-  [normalizeText("Anil Sadarangani")]: "/Anil Sadarangani.png",
-  [normalizeText("Danilo Segovia")]: "/Danilo Segovia.png",
-  [normalizeText("Ricardo Cacciuttolo")]: "/Ricardo Cacciuttolo.png",
-  [normalizeText("María Isabel González")]: "/Isabel González.png",
-  [normalizeText("Vicente Meza")]: "/Vicente Meza.png",
-};
-
-function getAvatarSrc(name: string): string | null {
-  return AVATAR_BY_NORMALIZED_NAME[normalizeText(name)] || null;
-}
-
 function getInitials(name: string): string {
   const words = String(name || "")
     .trim()
@@ -70,75 +52,11 @@ export default async function Page({ params }: Params) {
 
   const incubadoraSummary = await getIncubadoraSummary();
 
-  const comunicacionesTeam = [
-    {
-      name: "María Fernanda Gana",
-      role: "Jefa de Comunicaciones",
-      email: "mfgana@uandes.cl",
-    },
-    {
-      name: "Josefina Jarpa",
-      role: "Content Manager (depende de María Fernanda Gana)",
-      email: "jjarpa@uandes.cl",
-    },
-  ];
-
-  const desarrolloTeam = [
-    {
-      name: "Daniela Sánchez",
-      role: "Jefa de Asuntos Jurídicos",
-      email: "dsanchezr@uandes.cl",
-    },
-    {
-      name: "Camila Adonis",
-      role: "Coordinadora de Proyectos de Innovación",
-      email: "cadonisr@uandes.cl",
-    },
-    {
-      name: "Karen Marquez",
-      role: "Gestora Tecnológica",
-      email: "kmarquez@uandes.cl",
-    },
-    {
-      name: "Claudio Arriaza",
-      role: "Agente de Comercialización",
-      email: "carriaza@uandes.cl",
-    },
-  ];
-
-  const proyectosTeam = [
-    {
-      name: "Danilo Segovia",
-      role: "Subdirector de Proyectos de Innovación",
-      email: "dsegovia@uandes.cl",
-    },
-    {
-      name: "Ricardo Cacciuttolo",
-      role: "Coordinador de Proyectos de Innovación",
-      email: "rcacciuttolo@uandes.cl",
-    },
-  ];
-
-  const asuntosJuridicosTeam = [
-    {
-      name: "Daniela Sánchez",
-      role: "Jefa de Asuntos Jurídicos",
-      email: "dsanchezr@uandes.cl",
-    },
-  ];
-
-  const biciTeam = [
-    {
-      name: "María Isabel González",
-      role: "Coordinadora Iniciativa BiCI",
-      email: "migonzalezm@uandes.cl",
-    },
-    {
-      name: "Vicente Meza",
-      role: "Asistente Open Lab",
-      email: "ext_vmeza@uandes.cl",
-    },
-  ];
+  const comunicacionesTeam = detail.team;
+  const desarrolloTeam = detail.team;
+  const proyectosTeam = detail.team;
+  const asuntosJuridicosTeam = detail.team;
+  const biciTeam = detail.team;
 
   const communicationsChartYear = 2025;
   const communicationRowsForMonthly = detail.communications.map((item) => ({
@@ -273,24 +191,25 @@ export default async function Page({ params }: Params) {
               ) : detail.slug === "desarrollo-tecnologico-y-comercializacion" ? (
                 <div className="mt-3 space-y-3">
                   {desarrolloTeam.map((person) => (
-                    <div key={person.name} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                    <div key={person.nombre} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
                       <div className="flex items-start gap-3">
-                        {getAvatarSrc(person.name) ? (
+                        {person.photoUrl ? (
                           <Image
-                            src={getAvatarSrc(person.name) || ""}
-                            alt={person.name}
+                            src={person.photoUrl}
+                            alt={person.nombre}
                             width={44}
                             height={44}
                             className="h-11 w-11 rounded-full object-cover"
                           />
                         ) : (
                           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-                            {getInitials(person.name)}
+                            {getInitials(person.nombre)}
                           </div>
                         )}
                         <div>
-                          <div className="text-sm font-semibold text-slate-900">{person.name}</div>
-                          <div className="mt-0.5 text-xs text-gray-600">{person.role}</div>
+                          <div className="text-sm font-semibold text-slate-900">{person.nombre}</div>
+                          <div className="mt-0.5 text-xs text-gray-600">{person.cargo}</div>
+                          <div className="text-xs text-gray-500">{person.area}</div>
                           <div className="mt-1 text-xs text-gray-500">{person.email}</div>
                         </div>
                       </div>
@@ -300,24 +219,25 @@ export default async function Page({ params }: Params) {
               ) : detail.slug === "proyectos" ? (
                 <div className="mt-3 space-y-3">
                   {proyectosTeam.map((person) => (
-                    <div key={person.name} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                    <div key={person.nombre} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
                       <div className="flex items-start gap-3">
-                        {getAvatarSrc(person.name) ? (
+                        {person.photoUrl ? (
                           <Image
-                            src={getAvatarSrc(person.name) || ""}
-                            alt={person.name}
+                            src={person.photoUrl}
+                            alt={person.nombre}
                             width={44}
                             height={44}
                             className="h-11 w-11 rounded-full object-cover"
                           />
                         ) : (
                           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-                            {getInitials(person.name)}
+                            {getInitials(person.nombre)}
                           </div>
                         )}
                         <div>
-                          <div className="text-sm font-semibold text-slate-900">{person.name}</div>
-                          <div className="mt-0.5 text-xs text-gray-600">{person.role}</div>
+                          <div className="text-sm font-semibold text-slate-900">{person.nombre}</div>
+                          <div className="mt-0.5 text-xs text-gray-600">{person.cargo}</div>
+                          <div className="text-xs text-gray-500">{person.area}</div>
                           <div className="mt-1 text-xs text-gray-500">{person.email}</div>
                         </div>
                       </div>
@@ -327,24 +247,25 @@ export default async function Page({ params }: Params) {
               ) : detail.slug === "propiedad-intelectual" ? (
                 <div className="mt-3 space-y-3">
                   {asuntosJuridicosTeam.map((person) => (
-                    <div key={person.name} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                    <div key={person.nombre} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
                       <div className="flex items-start gap-3">
-                        {getAvatarSrc(person.name) ? (
+                        {person.photoUrl ? (
                           <Image
-                            src={getAvatarSrc(person.name) || ""}
-                            alt={person.name}
+                            src={person.photoUrl}
+                            alt={person.nombre}
                             width={44}
                             height={44}
                             className="h-11 w-11 rounded-full object-cover"
                           />
                         ) : (
                           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-                            {getInitials(person.name)}
+                            {getInitials(person.nombre)}
                           </div>
                         )}
                         <div>
-                          <div className="text-sm font-semibold text-slate-900">{person.name}</div>
-                          <div className="mt-0.5 text-xs text-gray-600">{person.role}</div>
+                          <div className="text-sm font-semibold text-slate-900">{person.nombre}</div>
+                          <div className="mt-0.5 text-xs text-gray-600">{person.cargo}</div>
+                          <div className="text-xs text-gray-500">{person.area}</div>
                           <div className="mt-1 text-xs text-gray-500">{person.email}</div>
                         </div>
                       </div>
@@ -354,24 +275,25 @@ export default async function Page({ params }: Params) {
               ) : detail.slug === "proyecto-bici" ? (
                 <div className="mt-3 space-y-3">
                   {biciTeam.map((person) => (
-                    <div key={person.name} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                    <div key={person.nombre} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
                       <div className="flex items-start gap-3">
-                        {getAvatarSrc(person.name) ? (
+                        {person.photoUrl ? (
                           <Image
-                            src={getAvatarSrc(person.name) || ""}
-                            alt={person.name}
+                            src={person.photoUrl}
+                            alt={person.nombre}
                             width={44}
                             height={44}
                             className="h-11 w-11 rounded-full object-cover"
                           />
                         ) : (
                           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-                            {getInitials(person.name)}
+                            {getInitials(person.nombre)}
                           </div>
                         )}
                         <div>
-                          <div className="text-sm font-semibold text-slate-900">{person.name}</div>
-                          <div className="mt-0.5 text-xs text-gray-600">{person.role}</div>
+                          <div className="text-sm font-semibold text-slate-900">{person.nombre}</div>
+                          <div className="mt-0.5 text-xs text-gray-600">{person.cargo}</div>
+                          <div className="text-xs text-gray-500">{person.area}</div>
                           <div className="mt-1 text-xs text-gray-500">{person.email}</div>
                         </div>
                       </div>
@@ -381,24 +303,25 @@ export default async function Page({ params }: Params) {
               ) : detail.slug === "comunicaciones" ? (
                 <div className="mt-3 space-y-3">
                   {comunicacionesTeam.map((person) => (
-                    <div key={person.name} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                    <div key={person.nombre} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
                       <div className="flex items-start gap-3">
-                        {getAvatarSrc(person.name) ? (
+                        {person.photoUrl ? (
                           <Image
-                            src={getAvatarSrc(person.name) || ""}
-                            alt={person.name}
+                            src={person.photoUrl}
+                            alt={person.nombre}
                             width={44}
                             height={44}
                             className="h-11 w-11 rounded-full object-cover"
                           />
                         ) : (
                           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
-                            {getInitials(person.name)}
+                            {getInitials(person.nombre)}
                           </div>
                         )}
                         <div>
-                          <div className="text-sm font-semibold text-slate-900">{person.name}</div>
-                          <div className="mt-0.5 text-xs text-gray-600">{person.role}</div>
+                          <div className="text-sm font-semibold text-slate-900">{person.nombre}</div>
+                          <div className="mt-0.5 text-xs text-gray-600">{person.cargo}</div>
+                          <div className="text-xs text-gray-500">{person.area}</div>
                           <div className="mt-1 text-xs text-gray-500">{person.email}</div>
                         </div>
                       </div>
@@ -408,24 +331,31 @@ export default async function Page({ params }: Params) {
               ) : detail.team.length === 0 ? (
                 <p className="mt-3 text-sm text-gray-500">—</p>
               ) : (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {detail.team.map((name) => (
-                    <span key={name} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700">
-                      {getAvatarSrc(name) ? (
-                        <Image
-                          src={getAvatarSrc(name) || ""}
-                          alt={name}
-                          width={24}
-                          height={24}
-                          className="h-6 w-6 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-700">
-                          {getInitials(name)}
-                        </span>
-                      )}
-                      <span>{name}</span>
-                    </span>
+                <div className="mt-3 space-y-3">
+                  {detail.team.map((person) => (
+                    <div key={person.nombre} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                      <div className="flex items-start gap-3">
+                        {person.photoUrl ? (
+                          <Image
+                            src={person.photoUrl}
+                            alt={person.nombre}
+                            width={44}
+                            height={44}
+                            className="h-11 w-11 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
+                            {getInitials(person.nombre)}
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900">{person.nombre}</div>
+                          <div className="mt-0.5 text-xs text-gray-600">{person.cargo}</div>
+                          <div className="text-xs text-gray-500">{person.area}</div>
+                          <div className="mt-1 text-xs text-gray-500">{person.email}</div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

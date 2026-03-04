@@ -2,16 +2,6 @@ import { getAllResearchers } from "./investigadores";
 import { getAllProjects } from "./proyectos";
 import { getAllInstitutions } from "./instituciones";
 import { getAllTechnologies } from "./tecnologias";
-import { normalizeText, slugifyNormalized, splitCandidateValues } from "./normalize";
-
-type MatchMethod = "exact" | "fuzzy";
-
-type MatchResult = {
-  matchedId?: string;
-  score: number;
-  method?: MatchMethod;
-  suggestions: Array<{ id: string; score: number }>;
-};
 
 type EntityRef = {
   id: string;
@@ -21,7 +11,7 @@ type EntityRef = {
 
 type LinkedSet = {
   auto: EntityRef[];
-  suggested: Array<EntityRef & { score: number; method: MatchMethod }>;
+  suggested: Array<EntityRef & { score: number }>;
 };
 
 type EntityAssociations = {
@@ -31,28 +21,11 @@ type EntityAssociations = {
   institutions: LinkedSet;
 };
 
-type Candidate = {
-  id: string;
-  normalized: string;
-  slug: string;
-};
-
-type EntityIndex = {
-  candidates: Candidate[];
-  slugMap: Map<string, Set<string>>;
-  refs: Map<string, EntityRef>;
-};
-
-type AssocBucket = {
-  auto: Set<string>;
-  suggested: Map<string, { score: number; method: MatchMethod }>;
-};
-
 type AssocStore = {
-  investigators: AssocBucket;
-  technologies: AssocBucket;
-  projects: AssocBucket;
-  institutions: AssocBucket;
+  investigators: Set<string>;
+  technologies: Set<string>;
+  projects: Set<string>;
+  institutions: Set<string>;
 };
 
 type LinksCache = {
@@ -62,181 +35,74 @@ type LinksCache = {
   institutionById: Map<string, EntityAssociations>;
 };
 
-const EXACT_THRESHOLD = 0.92;
-const SUGGEST_THRESHOLD = 0.85;
-
-const KEY_PATTERNS = {
-  investigator: ["investigador", "investigadores", "pi", "director", "responsable", "lider"],
-  institution: ["institucion", "institución", "entidad", "empresa", "partner", "organizacion", "organización", "coejecutor"],
-  project: ["proyecto", "nombreproyecto", "project"],
-  technology: ["tecnologia", "tecnología", "tecnologias", "tecnologías", "technology"],
-} as const;
-
-function normalizeKey(value: string): string {
-  return normalizeText(value).replace(/\s+/g, "");
+interface NameIndex {
+  nameToId: Map<string, string>;
+  normalizedNameToIds: Map<string, Set<string>>;
+  refs: Map<string, EntityRef>;
 }
 
-function jaroDistance(a: string, b: string): number {
-  if (a === b) return 1;
-  if (!a || !b) return 0;
+export function normalizeRelationLabel(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
 
-  const maxDist = Math.floor(Math.max(a.length, b.length) / 2) - 1;
-  const aMatches = new Array(a.length).fill(false);
-  const bMatches = new Array(b.length).fill(false);
+function createNameIndex(items: Array<{ id: string; name: string; path: string }>): NameIndex {
+  const nameToId = new Map<string, string>();
+  const normalizedNameToIds = new Map<string, Set<string>>();
+  const refs = new Map<string, EntityRef>();
+  for (const item of items) {
+    const trimmedName = String(item.name || "").trim();
+    if (trimmedName) {
+      nameToId.set(trimmedName, item.id);
 
-  let matches = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    const start = Math.max(0, i - maxDist);
-    const end = Math.min(i + maxDist + 1, b.length);
-    for (let j = start; j < end; j += 1) {
-      if (bMatches[j]) continue;
-      if (a[i] !== b[j]) continue;
-      aMatches[i] = true;
-      bMatches[j] = true;
-      matches += 1;
-      break;
+      const normalized = normalizeRelationLabel(trimmedName);
+      if (normalized) {
+        if (!normalizedNameToIds.has(normalized)) {
+          normalizedNameToIds.set(normalized, new Set<string>());
+        }
+        normalizedNameToIds.get(normalized)!.add(item.id);
+      }
     }
+    refs.set(item.id, { id: item.id, name: item.name, path: item.path });
   }
-
-  if (matches === 0) return 0;
-
-  let transpositions = 0;
-  let k = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    if (!aMatches[i]) continue;
-    while (!bMatches[k]) k += 1;
-    if (a[i] !== b[k]) transpositions += 1;
-    k += 1;
-  }
-
-  const m = matches;
-  return (m / a.length + m / b.length + (m - transpositions / 2) / m) / 3;
+  return { nameToId, normalizedNameToIds, refs };
 }
 
-function jaroWinkler(a: string, b: string): number {
-  const jaro = jaroDistance(a, b);
-  let prefix = 0;
-  for (let i = 0; i < Math.min(4, a.length, b.length); i += 1) {
-    if (a[i] !== b[i]) break;
-    prefix += 1;
-  }
-  return jaro + prefix * 0.1 * (1 - jaro);
-}
+function resolveByName(index: NameIndex, rawValue: string): string | null {
+  const value = String(rawValue || "").trim();
+  if (!value) return null;
 
-function createBucket(): AssocBucket {
-  return { auto: new Set<string>(), suggested: new Map<string, { score: number; method: MatchMethod }>() };
+  const exact = index.nameToId.get(value);
+  if (exact) return exact;
+
+  const normalized = normalizeRelationLabel(value);
+  if (!normalized) return null;
+
+  const ids = index.normalizedNameToIds.get(normalized);
+  if (!ids || ids.size === 0) return null;
+
+  // Si hay múltiples candidatos, usar el primero de forma determinística
+  return Array.from(ids).sort()[0] || null;
 }
 
 function createStore(): AssocStore {
   return {
-    investigators: createBucket(),
-    technologies: createBucket(),
-    projects: createBucket(),
-    institutions: createBucket(),
+    investigators: new Set<string>(),
+    technologies: new Set<string>(),
+    projects: new Set<string>(),
+    institutions: new Set<string>(),
   };
 }
 
-function getOrCreateStore(map: Map<string, AssocStore>, id: string): AssocStore {
-  const existing = map.get(id);
-  if (existing) return existing;
-  const created = createStore();
-  map.set(id, created);
-  return created;
-}
-
-function addAuto(map: Map<string, AssocStore>, sourceId: string, key: keyof AssocStore, targetId: string) {
-  const store = getOrCreateStore(map, sourceId);
-  store[key].auto.add(targetId);
-  store[key].suggested.delete(targetId);
-}
-
-function addSuggestion(map: Map<string, AssocStore>, sourceId: string, key: keyof AssocStore, targetId: string, score: number) {
-  const store = getOrCreateStore(map, sourceId);
-  if (store[key].auto.has(targetId)) return;
-  const existing = store[key].suggested.get(targetId);
-  if (!existing || score > existing.score) {
-    store[key].suggested.set(targetId, { score, method: "fuzzy" });
-  }
-}
-
-function createIndex(items: Array<{ id: string; aliases: string[]; name: string; path: string }>): EntityIndex {
-  const refs = new Map<string, EntityRef>();
-  const candidates: Candidate[] = [];
-  const slugMap = new Map<string, Set<string>>();
-
-  for (const item of items) {
-    refs.set(item.id, { id: item.id, name: item.name, path: item.path });
-
-    for (const alias of item.aliases) {
-      const normalized = normalizeText(alias);
-      const slug = slugifyNormalized(alias);
-      if (!normalized || !slug) continue;
-      candidates.push({ id: item.id, normalized, slug });
-      if (!slugMap.has(slug)) slugMap.set(slug, new Set<string>());
-      slugMap.get(slug)!.add(item.id);
-    }
-  }
-
-  return { candidates, slugMap, refs };
-}
-
-function matchAgainstIndex(value: string, index: EntityIndex): MatchResult {
-  const normalized = normalizeText(value);
-  const slug = slugifyNormalized(value);
-  if (!normalized || !slug) return { score: 0, suggestions: [] };
-
-  const exact = index.slugMap.get(slug);
-  if (exact && exact.size > 0) {
-    const first = Array.from(exact)[0];
-    return { matchedId: first, score: 1, method: "exact", suggestions: [] };
-  }
-
-  const bestById = new Map<string, number>();
-  for (const candidate of index.candidates) {
-    const score = jaroWinkler(normalized, candidate.normalized);
-    const prev = bestById.get(candidate.id) ?? 0;
-    if (score > prev) bestById.set(candidate.id, score);
-  }
-
-  const ranked = Array.from(bestById.entries())
-    .map(([id, score]) => ({ id, score }))
-    .sort((a, b) => b.score - a.score);
-
-  const best = ranked[0];
-  if (best && best.score >= EXACT_THRESHOLD) {
-    return { matchedId: best.id, score: best.score, method: "fuzzy", suggestions: [] };
-  }
-
-  const suggestions = ranked.filter((r) => r.score >= SUGGEST_THRESHOLD).slice(0, 5);
-  return { score: best?.score ?? 0, suggestions };
-}
-
-function extractValuesFromRaw(raw: Record<string, string>, patterns: readonly string[]): string[] {
-  const result: string[] = [];
-  for (const [key, value] of Object.entries(raw || {})) {
-    const normalizedKey = normalizeKey(key);
-    const matched = patterns.some((pattern) => normalizedKey.includes(normalizeKey(pattern)));
-    if (!matched) continue;
-    splitCandidateValues(value).forEach((part) => result.push(part));
-  }
-  return Array.from(new Set(result.map((v) => v.trim()).filter(Boolean)));
-}
-
-function toLinkedSet(bucket: AssocBucket, refs: Map<string, EntityRef>): LinkedSet {
-  const auto = Array.from(bucket.auto)
+function toLinkedSet(idSet: Set<string>, refs: Map<string, EntityRef>): LinkedSet {
+  const auto = Array.from(idSet)
     .map((id) => refs.get(id))
     .filter((item): item is EntityRef => Boolean(item));
-
-  const suggested = Array.from(bucket.suggested.entries())
-    .map(([id, info]) => {
-      const ref = refs.get(id);
-      if (!ref) return null;
-      return { ...ref, score: info.score, method: info.method };
-    })
-    .filter((item): item is EntityRef & { score: number; method: MatchMethod } => Boolean(item))
-    .sort((a, b) => b.score - a.score);
-
-  return { auto, suggested };
+  return { auto, suggested: [] };
 }
 
 function emptyAssociations(): EntityAssociations {
@@ -248,231 +114,146 @@ function emptyAssociations(): EntityAssociations {
   };
 }
 
+function resolveTechnologyId(row: Record<string, unknown>): string {
+  return String(row.TECN_ID || row.TECN_N || row.id || row.ID || "").trim();
+}
+
+function splitRelationValues(value: string): string[] {
+  return String(value || "")
+    .split(/[,;|\n]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 let cachePromise: Promise<LinksCache> | null = null;
 
 async function buildLinksCache(): Promise<LinksCache> {
-  const [researchers, projects, institutions, techRows] = await Promise.all([
+  const [researchers, projects, institutions, technologies] = await Promise.all([
     getAllResearchers(),
     getAllProjects(),
     getAllInstitutions(),
     getAllTechnologies(),
   ]);
 
-  const techItems = techRows.map((row) => {
-    const id = String(row.TECN_ID || row.TECN_N || row.id || row.ID || Object.values(row)[0] || "").trim();
-    const title = String(row.TECN_NombreTecnologia || row.TECN_NombreProyecto || row.title || row.nombre || id || "-").trim();
-    const aliases = [
-      id,
-      title,
-      String(row.TECN_NombreProyecto || "").trim(),
-      String(row.TECN_N || "").trim(),
-    ].filter(Boolean);
+  // Crear índices por nombre exacto
+  const researcherIndex = createNameIndex(
+    researchers.map((r) => ({
+      id: r.id,
+      name: r.name,
+      path: `/portafolio/investigadores/${encodeURIComponent(r.id)}`,
+    }))
+  );
 
-    return { id, name: title, aliases, path: `/portafolio/tecnologias/${encodeURIComponent(id)}`, raw: row };
-  }).filter((item) => item.id);
+  const projectIndex = createNameIndex(
+    projects.map((p) => ({
+      id: p.id,
+      name: p.title,
+      path: `/portafolio/proyectos/${encodeURIComponent(p.id)}`,
+    }))
+  );
 
-  const researcherItems = researchers.map((item) => ({
-    id: String(item.id),
-    name: String(item.name || item.id),
-    aliases: [item.id, item.name, item.raw.INV_NombreCompleto, item.raw.Nombre].filter(Boolean) as string[],
-    path: `/portafolio/investigadores/${encodeURIComponent(item.id)}`,
-    raw: item.raw,
-  }));
+  const institutionIndex = createNameIndex(
+    institutions.map((i) => ({
+      id: i.id,
+      name: i.name,
+      path: `/instituciones/${encodeURIComponent(i.id)}`,
+    }))
+  );
 
-  const projectItems = projects.map((item) => ({
-    id: String(item.id),
-    name: String(item.title || item.id),
-    aliases: [
-      item.id,
-      item.title,
-      item.raw.PROY_NombreProyecto,
-      item.raw.PROY_TituloProyecto,
-      item.raw["Nombre del proyecto"],
-    ].filter(Boolean) as string[],
-    path: `/portafolio/proyectos/${encodeURIComponent(item.id)}`,
-    raw: item.raw,
-    investigator: item.investigador,
-    techNames: item.tecnologiasAsociadas,
-  }));
+  const technologyIndex = createNameIndex(
+    technologies.map((t) => ({
+      id: resolveTechnologyId(t),
+      name: t.TECN_NombreTecnologia || t.name || "",
+      path: `/portafolio/tecnologias/${encodeURIComponent(resolveTechnologyId(t))}`,
+    }))
+  );
 
-  const institutionItems = institutions.map((item) => ({
-    id: String(item.id),
-    name: String(item.name || item.id),
-    aliases: [item.id, item.name, item.raw.INST_RazonSocial, item.raw.INST_NombreFantasia].filter(Boolean) as string[],
-    path: `/instituciones/${encodeURIComponent(item.id)}`,
-    raw: item.raw,
-  }));
-
-  const researcherIndex = createIndex(researcherItems);
-  const projectIndex = createIndex(projectItems);
-  const institutionIndex = createIndex(institutionItems);
-  const technologyIndex = createIndex(techItems);
-
+  // Almacenes de asociaciones
   const investigatorAssoc = new Map<string, AssocStore>();
   const projectAssoc = new Map<string, AssocStore>();
   const institutionAssoc = new Map<string, AssocStore>();
   const technologyAssoc = new Map<string, AssocStore>();
 
-  for (const project of projectItems) {
-    const continuityCandidates = splitCandidateValues(project.raw.PROY_ProyectoAnteriorContinuidad || "");
+  const getOrCreateStore = (map: Map<string, AssocStore>, id: string): AssocStore => {
+    if (!map.has(id)) map.set(id, createStore());
+    return map.get(id)!;
+  };
 
-    for (const value of continuityCandidates) {
-      const match = matchAgainstIndex(value, projectIndex);
-      if (match.matchedId && match.matchedId !== project.id) {
-        addAuto(projectAssoc, project.id, "projects", match.matchedId);
-        addAuto(projectAssoc, match.matchedId, "projects", project.id);
-      }
-      for (const suggestion of match.suggestions) {
-        if (suggestion.id === project.id) continue;
-        addSuggestion(projectAssoc, project.id, "projects", suggestion.id, suggestion.score);
-      }
+  // ===== RELACIÓN 1: Proyectos.PROY_InvestigadorLiderUANDES → Investigadores.INV_NombreCompleto =====
+  for (const proj of projects) {
+    const leaderName = String(proj.raw.PROY_InvestigadorLiderUANDES || "").trim();
+    const leaderId = leaderName ? resolveByName(researcherIndex, leaderName) : null;
+    if (leaderId) {
+      getOrCreateStore(projectAssoc, proj.id).investigators.add(leaderId);
+      getOrCreateStore(investigatorAssoc, leaderId).projects.add(proj.id);
     }
+  }
 
-    const invCandidates = [
-      ...splitCandidateValues(project.investigator),
-      ...extractValuesFromRaw(project.raw, KEY_PATTERNS.investigator),
-    ];
+  // ===== RELACIÓN 2: Proyectos.PROY_NombreTecnologia → Tecnologias.TECN_NombreTecnologia =====
+  for (const proj of projects) {
+    const techName = String(proj.raw.PROY_NombreTecnologia || "").trim();
+    const techId = techName ? resolveByName(technologyIndex, techName) : null;
+    if (techId) {
+      getOrCreateStore(projectAssoc, proj.id).technologies.add(techId);
+      getOrCreateStore(technologyAssoc, techId).projects.add(proj.id);
 
-    for (const value of invCandidates) {
-      const match = matchAgainstIndex(value, researcherIndex);
-      if (match.matchedId) {
-        addAuto(projectAssoc, project.id, "investigators", match.matchedId);
-        addAuto(investigatorAssoc, match.matchedId, "projects", project.id);
-      }
-      for (const suggestion of match.suggestions) {
-        addSuggestion(projectAssoc, project.id, "investigators", suggestion.id, suggestion.score);
-      }
-    }
-
-    const techCandidates = [
-      ...(project.techNames || []),
-      ...extractValuesFromRaw(project.raw, KEY_PATTERNS.technology),
-    ];
-
-    for (const value of techCandidates) {
-      const match = matchAgainstIndex(value, technologyIndex);
-      if (match.matchedId) {
-        addAuto(projectAssoc, project.id, "technologies", match.matchedId);
-        addAuto(technologyAssoc, match.matchedId, "projects", project.id);
-      }
-      for (const suggestion of match.suggestions) {
-        addSuggestion(projectAssoc, project.id, "technologies", suggestion.id, suggestion.score);
-      }
-    }
-
-    const instCandidates = extractValuesFromRaw(project.raw, KEY_PATTERNS.institution);
-    for (const value of instCandidates) {
-      const match = matchAgainstIndex(value, institutionIndex);
-      if (match.matchedId) {
-        addAuto(projectAssoc, project.id, "institutions", match.matchedId);
-        addAuto(institutionAssoc, match.matchedId, "projects", project.id);
-      }
-      for (const suggestion of match.suggestions) {
-        addSuggestion(projectAssoc, project.id, "institutions", suggestion.id, suggestion.score);
+      // Propagar tecnología al/los investigadores ya vinculados al proyecto
+      // para que aparezca en la vista "Tecnologías asociadas" del investigador.
+      const linkedInvestigators = getOrCreateStore(projectAssoc, proj.id).investigators;
+      for (const investigatorId of linkedInvestigators) {
+        getOrCreateStore(investigatorAssoc, investigatorId).technologies.add(techId);
+        getOrCreateStore(technologyAssoc, techId).investigators.add(investigatorId);
       }
     }
   }
 
-  for (const tech of techItems) {
-    const invCandidates = [
-      ...splitCandidateValues(tech.raw.TECN_Investigadores || tech.raw.Investigadores || ""),
-      ...extractValuesFromRaw(tech.raw, KEY_PATTERNS.investigator),
-    ];
+  // ===== RELACIÓN 3: Proyectos.PROY_ResponsableSeguimientoTecnico → EquipoInnovacion.Nombre =====
+  // (Solo validación; EquipoInnovación no es una entidad principal en associations)
 
-    for (const value of invCandidates) {
-      const match = matchAgainstIndex(value, researcherIndex);
-      if (match.matchedId) {
-        addAuto(technologyAssoc, tech.id, "investigators", match.matchedId);
-        addAuto(investigatorAssoc, match.matchedId, "technologies", tech.id);
-      }
-      for (const suggestion of match.suggestions) {
-        addSuggestion(technologyAssoc, tech.id, "investigators", suggestion.id, suggestion.score);
-      }
-    }
+  // ===== RELACIÓN 4: Tecnologias.TECN_NombreProyecto → Proyectos.PROY_NombreProyecto =====
+  // (Ya cubierta por relación 2 bidireccional)
+  for (const tech of technologies) {
+    const techId = resolveTechnologyId(tech);
+    const projNames = splitRelationValues(String(tech.TECN_NombreProyecto || ""));
 
-    const instCandidates = extractValuesFromRaw(tech.raw, KEY_PATTERNS.institution);
-    for (const value of instCandidates) {
-      const match = matchAgainstIndex(value, institutionIndex);
-      if (match.matchedId) {
-        addAuto(technologyAssoc, tech.id, "institutions", match.matchedId);
-        addAuto(institutionAssoc, match.matchedId, "technologies", tech.id);
-      }
-      for (const suggestion of match.suggestions) {
-        addSuggestion(technologyAssoc, tech.id, "institutions", suggestion.id, suggestion.score);
-      }
-    }
+    for (const projName of projNames) {
+      const projId = resolveByName(projectIndex, projName);
+      if (!projId) continue;
 
-    const projCandidates = [
-      ...extractValuesFromRaw(tech.raw, KEY_PATTERNS.project),
-      ...splitCandidateValues(tech.raw.TECN_NombreProyecto || ""),
-    ];
-
-    for (const value of projCandidates) {
-      const match = matchAgainstIndex(value, projectIndex);
-      if (match.matchedId) {
-        addAuto(technologyAssoc, tech.id, "projects", match.matchedId);
-        addAuto(projectAssoc, match.matchedId, "technologies", tech.id);
+      if (!getOrCreateStore(technologyAssoc, techId).projects.has(projId)) {
+        getOrCreateStore(technologyAssoc, techId).projects.add(projId);
+        getOrCreateStore(projectAssoc, projId).technologies.add(techId);
       }
-      for (const suggestion of match.suggestions) {
-        addSuggestion(technologyAssoc, tech.id, "projects", suggestion.id, suggestion.score);
+
+      // Propagar investigadores del proyecto hacia la tecnología
+      // para que aparezcan en "Asociados" de la tecnología.
+      const projectInvestigators = getOrCreateStore(projectAssoc, projId).investigators;
+      for (const investigatorId of projectInvestigators) {
+        getOrCreateStore(technologyAssoc, techId).investigators.add(investigatorId);
+        getOrCreateStore(investigatorAssoc, investigatorId).technologies.add(techId);
       }
     }
   }
 
-  for (const researcher of researcherItems) {
-    const techCandidates = [
-      ...extractValuesFromRaw(researcher.raw, KEY_PATTERNS.technology),
-      ...splitCandidateValues(researcher.raw.INV_TecnologiasAsociadas || researcher.raw.INV_TecnologiaAsociada || ""),
-    ];
+  // ===== RELACIONES 5-17: Solo validación de integridad referencial =====
+  // Estas relaciones se leen desde CSVs auxiliares (MadurezTecnol, Legal_PI, Legal_Doc,
+  // Proy-Financiamiento, Proy-Involucrados, Comunicaciones)
+  // y se valida su existencia pero no se almacenan en associations
+  // porque esas tablas se acceden directamente desde la UI
 
-    for (const value of techCandidates) {
-      const match = matchAgainstIndex(value, technologyIndex);
-      if (match.matchedId) {
-        addAuto(investigatorAssoc, researcher.id, "technologies", match.matchedId);
-        addAuto(technologyAssoc, match.matchedId, "investigators", researcher.id);
-      }
-      for (const suggestion of match.suggestions) {
-        addSuggestion(investigatorAssoc, researcher.id, "technologies", suggestion.id, suggestion.score);
-      }
-    }
-
-    const projCandidates = extractValuesFromRaw(researcher.raw, KEY_PATTERNS.project);
-    for (const value of projCandidates) {
-      const match = matchAgainstIndex(value, projectIndex);
-      if (match.matchedId) {
-        addAuto(investigatorAssoc, researcher.id, "projects", match.matchedId);
-        addAuto(projectAssoc, match.matchedId, "investigators", researcher.id);
-      }
-      for (const suggestion of match.suggestions) {
-        addSuggestion(investigatorAssoc, researcher.id, "projects", suggestion.id, suggestion.score);
-      }
-    }
-
-    const instCandidates = extractValuesFromRaw(researcher.raw, KEY_PATTERNS.institution);
-    for (const value of instCandidates) {
-      const match = matchAgainstIndex(value, institutionIndex);
-      if (match.matchedId) {
-        addAuto(investigatorAssoc, researcher.id, "institutions", match.matchedId);
-      }
-      for (const suggestion of match.suggestions) {
-        addSuggestion(investigatorAssoc, researcher.id, "institutions", suggestion.id, suggestion.score);
-      }
-    }
-  }
-
+  // Construir mapas finales
   const buildAssociationMap = (
-    sourceItems: Array<{ id: string }>,
+    sourceIds: string[],
     sourceStore: Map<string, AssocStore>,
   ): Map<string, EntityAssociations> => {
     const out = new Map<string, EntityAssociations>();
-    for (const item of sourceItems) {
-      const store = sourceStore.get(item.id);
+    for (const id of sourceIds) {
+      const store = sourceStore.get(id);
       if (!store) {
-        out.set(item.id, emptyAssociations());
+        out.set(id, emptyAssociations());
         continue;
       }
-
-      out.set(item.id, {
+      out.set(id, {
         investigators: toLinkedSet(store.investigators, researcherIndex.refs),
         technologies: toLinkedSet(store.technologies, technologyIndex.refs),
         projects: toLinkedSet(store.projects, projectIndex.refs),
@@ -483,10 +264,22 @@ async function buildLinksCache(): Promise<LinksCache> {
   };
 
   return {
-    investigatorById: buildAssociationMap(researcherItems, investigatorAssoc),
-    technologyById: buildAssociationMap(techItems, technologyAssoc),
-    projectById: buildAssociationMap(projectItems, projectAssoc),
-    institutionById: buildAssociationMap(institutionItems, institutionAssoc),
+    investigatorById: buildAssociationMap(
+      researchers.map((r) => r.id),
+      investigatorAssoc
+    ),
+    technologyById: buildAssociationMap(
+      technologies.map((t) => resolveTechnologyId(t)),
+      technologyAssoc
+    ),
+    projectById: buildAssociationMap(
+      projects.map((p) => p.id),
+      projectAssoc
+    ),
+    institutionById: buildAssociationMap(
+      institutions.map((i) => i.id),
+      institutionAssoc
+    ),
   };
 }
 
@@ -513,4 +306,36 @@ export async function getProjectAssociations(id: string): Promise<EntityAssociat
 export async function getInstitutionAssociations(id: string): Promise<EntityAssociations> {
   const cache = await getLinksCache();
   return cache.institutionById.get(String(id)) ?? emptyAssociations();
+}
+
+// ===== Funciones de resolución por nombre para validación de relaciones =====
+// Usadas por lib/comunicaciones.ts y otros módulos para resolver referencias por nombre
+// con matching normalizado (insensible a acentos, mayúsculas, puntuación)
+
+export async function resolveInvestigatorIdByName(name: string): Promise<string | null> {
+  const researchers = await getAllResearchers();
+  const researcherIndex = createNameIndex(
+    researchers.map((r) => ({ id: r.id, name: r.name, path: `/portafolio/investigadores/${r.id}` }))
+  );
+  return resolveByName(researcherIndex, name);
+}
+
+export async function resolveProjectIdByName(name: string): Promise<string | null> {
+  const projects = await getAllProjects();
+  const projectIndex = createNameIndex(
+    projects.map((p) => ({ id: p.id, name: p.title, path: `/portafolio/proyectos/${p.id}` }))
+  );
+  return resolveByName(projectIndex, name);
+}
+
+export async function resolveTechnologyIdByNameForValidation(name: string): Promise<string | null> {
+  const technologies = await getAllTechnologies();
+  const technologyIndex = createNameIndex(
+    technologies.map((t) => ({
+      id: resolveTechnologyId(t),
+      name: String(t.TECN_NombreTecnologia || "").trim(),
+      path: `/portafolio/tecnologias/${resolveTechnologyId(t)}`,
+    }))
+  );
+  return resolveByName(technologyIndex, name);
 }

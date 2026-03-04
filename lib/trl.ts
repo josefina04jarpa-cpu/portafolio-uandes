@@ -1,7 +1,7 @@
 import { readFile } from "fs/promises";
 import { parse } from "csv-parse/sync";
 import { resolveDataFile } from "./dataPath";
-import { normalizeText } from "./normalize";
+import { normalizeRelationLabel } from "./entityLinks";
 
 type TRLRawRow = Record<string, string>;
 
@@ -41,7 +41,7 @@ function parseYears(value: string): number[] {
 async function getAllRows(): Promise<TRLRawRow[]> {
   if (cache) return cache;
 
-  const path = resolveDataFile("TRL.csv");
+  const path = resolveDataFile("Tecn-MadurezTecnol.csv");
   const raw = await readFile(path, "utf8");
   const records = parse(raw, {
     columns: true,
@@ -63,12 +63,15 @@ async function getAllRows(): Promise<TRLRawRow[]> {
   return cache;
 }
 
-export async function getTRLByTechnologyName(technologyName: string): Promise<TRLYearPoint[]> {
+export async function getTRLByTecnologiaNormalized(technologyName: string): Promise<TRLYearPoint[]> {
   const rows = await getAllRows();
-  const target = normalizeText(technologyName);
-  if (!target) return [];
+  const normalized = normalizeRelationLabel(technologyName);
+  if (!normalized) return [];
 
-  const filtered = rows.filter((row) => normalizeText(row.TECT_NombreTecnologia) === target);
+  const filtered = rows.filter((row) => {
+    const rowNorm = normalizeRelationLabel(row.TECT_NombreTecnologia);
+    return rowNorm === normalized;
+  });
   if (filtered.length === 0) return [];
 
   const byYear = new Map<number, TRLYearPoint>();

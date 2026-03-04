@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import TimelineProteccion from "./TimelineProteccion";
-import type { LegalPI } from "../lib/legal";
+import type { LegalPI } from "../lib/legal_pi";
 import ExportSummaryPdfButton from "./ExportSummaryPdfButton";
 
 type Props = { tech: Record<string, unknown>; summaryDescription?: string; legalItems?: LegalPI[] };
