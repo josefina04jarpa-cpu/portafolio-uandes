@@ -19,13 +19,13 @@ export type SubdireccionMeta = {
 
 export const SUBDIRECCIONES: SubdireccionMeta[] = [
   {
-    slug: "emprendimiento",
-    title: "Subdirección de Emprendimiento",
-    shortDescription: "Impulsa iniciativas tempranas, validación y conexión con oportunidades de mercado.",
+    slug: "desarrollo-tecnologico-y-comercializacion",
+    title: "Subdir. Desarrollo Tecnológico y Comercialización",
+    shortDescription: "Acelera la transferencia y comercialización de tecnologías con foco en adopción.",
     longDescription:
-      "Lidera programas e iniciativas para transformar ideas en soluciones con potencial de impacto, acompañando etapas iniciales de validación y crecimiento.",
-    accentColor: "#7c3aed",
-    icon: "rocket",
+      "Promueve la maduración tecnológica y la estrategia de comercialización para conectar resultados de I+D con necesidades reales de la sociedad y la industria.",
+    accentColor: "#0f766e",
+    icon: "cpu",
   },
   {
     slug: "proyectos",
@@ -37,15 +37,6 @@ export const SUBDIRECCIONES: SubdireccionMeta[] = [
     icon: "folder",
   },
   {
-    slug: "desarrollo-tecnologico-y-comercializacion",
-    title: "Subdir. Desarrollo Tecnológico y Comercialización",
-    shortDescription: "Acelera la transferencia y comercialización de tecnologías con foco en adopción.",
-    longDescription:
-      "Promueve la maduración tecnológica y la estrategia de comercialización para conectar resultados de I+D con necesidades reales de la sociedad y la industria.",
-    accentColor: "#0f766e",
-    icon: "cpu",
-  },
-  {
     slug: "propiedad-intelectual",
     title: "Asuntos Jurídicos",
     shortDescription: "Protege activos de conocimiento y gestiona la estrategia de propiedad intelectual.",
@@ -53,6 +44,15 @@ export const SUBDIRECCIONES: SubdireccionMeta[] = [
       "Conduce procesos de protección de resultados, apoyando decisiones sobre registro, titularidad y resguardo de activos intangibles institucionales.",
     accentColor: "#be123c",
     icon: "shield",
+  },
+  {
+    slug: "proyecto-bici",
+    title: "Proyecto BiCI",
+    shortDescription: "Impulsa iniciativas con impacto social y territorial, integrando academia, comunidad y Open Lab.",
+    longDescription:
+      "Articula proyectos de la iniciativa BiCI y la operación de Open Lab para acelerar soluciones aplicadas, con foco en transferencia de conocimiento e impacto en comunidades.",
+    accentColor: "#0ea5e9",
+    icon: "cpu",
   },
   {
     slug: "comunicaciones",
@@ -64,13 +64,13 @@ export const SUBDIRECCIONES: SubdireccionMeta[] = [
     icon: "megaphone",
   },
   {
-    slug: "proyecto-bici",
-    title: "Proyecto BiCI",
-    shortDescription: "Impulsa iniciativas con impacto social y territorial, integrando academia, comunidad y Open Lab.",
+    slug: "emprendimiento",
+    title: "Subdirección de Emprendimiento",
+    shortDescription: "Impulsa iniciativas tempranas, validación y conexión con oportunidades de mercado.",
     longDescription:
-      "Articula proyectos de la iniciativa BiCI y la operación de Open Lab para acelerar soluciones aplicadas, con foco en transferencia de conocimiento e impacto en comunidades.",
-    accentColor: "#0ea5e9",
-    icon: "cpu",
+      "Lidera programas e iniciativas para transformar ideas en soluciones con potencial de impacto, acompañando etapas iniciales de validación y crecimiento.",
+    accentColor: "#7c3aed",
+    icon: "rocket",
   },
 ];
 

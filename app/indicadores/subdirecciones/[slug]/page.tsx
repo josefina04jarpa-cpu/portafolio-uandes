@@ -118,7 +118,7 @@ export default async function Page({ params }: Params) {
                 <a
                   href="https://www.instagram.com/innovacionuandes/"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-slate-700 transition hover:bg-gray-50"
                   aria-label="Instagram Innovación UANDES"
                   title="Instagram"
@@ -130,7 +130,7 @@ export default async function Page({ params }: Params) {
                 <a
                   href="https://www.linkedin.com/company/innovacionuandes/?originalSubdomain=cl"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-slate-700 transition hover:bg-gray-50"
                   aria-label="LinkedIn Innovación UANDES"
                   title="LinkedIn"

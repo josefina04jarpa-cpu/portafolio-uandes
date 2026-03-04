@@ -8,6 +8,7 @@ export type EquipoMember = {
   area: string;
   areaEstrategica: string;
   correo: string;
+  jerarquiaArea: number;
 };
 
 let equipoCache: EquipoMember[] | null = null;
@@ -36,6 +37,7 @@ function getAllEquipo(): EquipoMember[] {
       area: record["area"] || "",
       areaEstrategica: record["areaestrategica"] || record["areaestratégica"] || "",
       correo: record["correo"] || "",
+      jerarquiaArea: parseInt(record["jerarquiaarea"] || "0", 10) || 0,
     };
   });
 
@@ -120,5 +122,17 @@ export function getAllEquipoByArea(): Map<SubdireccionSlug, EquipoMember[]> {
 
 export function getPhotoUrlForName(nombre: string): string | null {
   return findPhotoForName(nombre);
+}
+
+export function getAllEquipoMembers(): EquipoMember[] {
+  return getAllEquipo();
+}
+
+export function getEquipoMemberByEmail(email: string): EquipoMember | null {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) return null;
+  
+  const equipo = getAllEquipo();
+  return equipo.find((m) => m.correo.toLowerCase() === normalizedEmail) || null;
 }
 

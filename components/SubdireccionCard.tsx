@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { SubdireccionCardData } from "../lib/subdirecciones";
+import styles from "./SubdireccionCard.module.css";
 
 type Props = {
   item: SubdireccionCardData;
@@ -25,15 +26,23 @@ function formatMetric(value: number | null, compact = false): string {
 }
 
 export default function SubdireccionCard({ item }: Props) {
+  const accentClass =
+    item.icon === "rocket"
+      ? styles.accentRocket
+      : item.icon === "folder"
+      ? styles.accentFolder
+      : item.icon === "cpu"
+      ? styles.accentCpu
+      : item.icon === "shield"
+      ? styles.accentShield
+      : styles.accentDefault;
+
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm" style={{ "--accent-color": item.accentColor, "--accent-light": `${item.accentColor}20` } as React.CSSProperties}>
-      <div className="absolute left-0 top-0 h-1.5 w-full" style={{ backgroundColor: "var(--accent-color)" }} />
+    <article className={`relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm ${styles.card} ${accentClass}`}>
+      <div className={`absolute left-0 top-0 h-1.5 w-full ${styles.accentBar}`} />
 
       <div className="flex items-start gap-4">
-        <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xl"
-          style={{ backgroundColor: "var(--accent-light)" }}
-        >
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xl ${styles.accentBadge}`}>
           <AreaIcon icon={item.icon} />
         </div>
 

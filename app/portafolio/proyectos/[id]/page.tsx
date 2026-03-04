@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getExecutiveContactForProject } from "../../../../lib/executiveProfiles";
+import { getExecutiveContactForProject, getProjectResponsibles } from "../../../../lib/executiveProfiles";
 import ExecutiveContactButton from "../../../../components/ExecutiveContactButton";
 import { getAllProjects, getProjectById } from "../../../../lib/proyectos";
 import { getProjectAssociations } from "../../../../lib/entityLinks";
@@ -82,6 +82,7 @@ export default async function Page({ params, searchParams }: Params) {
   const directorProyecto = String(project.raw["PROY_InvestigadorLiderUANDES"] || project.investigador || "").trim();
   const nombreProyecto = String(project.raw["PROY_NombreProyecto"] || project.title || "").trim();
   const executiveContact = await getExecutiveContactForProject(project);
+  const projectResponsibles = await getProjectResponsibles(project);
   const [financiamientos, allInstitutions] = await Promise.all([
     getFinanciamientoByProyectoNormalized(String(project.raw["PROY_NombreProyecto"] || project.title || "")),
     getAllInstitutions(),
@@ -347,17 +348,47 @@ export default async function Page({ params, searchParams }: Params) {
               <div>
                 Investigador: <span className="font-medium text-slate-900">{display(project.investigador)}</span>
               </div>
-              <div>
-                Ejecutivo a cargo: <span className="font-medium text-slate-900">{display(executiveContact?.name || "-")}</span>
-              </div>
             </div>
 
-            {executiveContact?.email ? (
-              <ExecutiveContactButton
-                email={executiveContact.email}
-                subject={`Consulta proyecto: ${display(project.title)}`}
-              />
-            ) : null}
+            {projectResponsibles.length > 0 && (
+              <div className="mt-4 space-y-3">
+                <h4 className="text-sm font-semibold text-slate-900">Ejecutivos a cargo</h4>
+                {projectResponsibles.map((responsible, idx) => (
+                  <div key={`${responsible.email}-${idx}`} className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-slate-900">{display(responsible.name)}</div>
+                        <div className="mt-0.5 text-xs text-gray-600">{display(responsible.role)}</div>
+                      </div>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap ${
+                        responsible.type === "postulacion"
+                          ? "bg-blue-50 text-blue-700 border border-blue-200"
+                          : "bg-purple-50 text-purple-700 border border-purple-200"
+                      }`}>
+                        {responsible.type === "postulacion" ? "Postulación" : "Seguimiento Técnico"}
+                      </span>
+                    </div>
+                    <ExecutiveContactButton
+                      email={responsible.email}
+                      subject={`Consulta proyecto: ${display(project.title)}`}
+                      className="mt-2 w-full"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {projectResponsibles.length === 0 && executiveContact?.email && (
+              <>
+                <div className="mt-4 text-sm text-gray-600">
+                  Ejecutivo a cargo: <span className="font-medium text-slate-900">{display(executiveContact.name)}</span>
+                </div>
+                <ExecutiveContactButton
+                  email={executiveContact.email}
+                  subject={`Consulta proyecto: ${display(project.title)}`}
+                />
+              </>
+            )}
           </div>
         </aside>
       </div>

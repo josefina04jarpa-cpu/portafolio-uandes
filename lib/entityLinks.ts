@@ -235,7 +235,25 @@ async function buildLinksCache(): Promise<LinksCache> {
     }
   }
 
-  // ===== RELACIONES 5-17: Solo validación de integridad referencial =====
+  // ===== RELACIÓN 5: Proyectos.PROY_ProyectoAnteriorContinuidad → Proyectos.PROY_NombreProyecto =====
+  for (const proj of projects) {
+    const anteriorName = String(proj.raw.PROY_ProyectoAnteriorContinuidad || "").trim();
+    if (!anteriorName) continue;
+
+    // Split por separadores comunes (algunos proyectos pueden tener múltiples anteriores)
+    const anteriorNames = splitRelationValues(anteriorName);
+    
+    for (const name of anteriorNames) {
+      const anteriorId = resolveByName(projectIndex, name);
+      if (!anteriorId || anteriorId === proj.id) continue; // Evitar auto-referencia
+
+      // Relación bidireccional: el proyecto actual es continuación del anterior
+      getOrCreateStore(projectAssoc, proj.id).projects.add(anteriorId);
+      getOrCreateStore(projectAssoc, anteriorId).projects.add(proj.id);
+    }
+  }
+
+  // ===== RELACIONES 6-17: Solo validación de integridad referencial =====
   // Estas relaciones se leen desde CSVs auxiliares (MadurezTecnol, Legal_PI, Legal_Doc,
   // Proy-Financiamiento, Proy-Involucrados, Comunicaciones)
   // y se valida su existencia pero no se almacenan en associations
