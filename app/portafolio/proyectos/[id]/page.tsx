@@ -5,9 +5,7 @@ import ExecutiveContactButton from "../../../../components/ExecutiveContactButto
 import { getAllProjects, getProjectById } from "../../../../lib/proyectos";
 import { getProjectAssociations } from "../../../../lib/entityLinks";
 import { getComunicacionesByProyecto } from "../../../../lib/comunicaciones";
-import { getLegalPI, matchByProduct } from "../../../../lib/legal";
 import ComunicacionesSection from "../../../../components/ComunicacionesSection";
-import LegalPITab from "../../../../components/LegalPITab";
 import ExportSummaryPdfButton from "../../../../components/ExportSummaryPdfButton";
 
 type Params = {
@@ -15,14 +13,13 @@ type Params = {
   searchParams?: Promise<{ tab?: string }>;
 };
 
-type TabKey = "resumen" | "tecnologias" | "investigadores" | "apariciones" | "propiedad-intelectual" | "notas";
+type TabKey = "resumen" | "tecnologias" | "investigadores" | "apariciones" | "notas";
 
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "resumen", label: "Resumen" },
   { key: "tecnologias", label: "Tecnologías asociadas" },
   { key: "investigadores", label: "Investigadores" },
   { key: "apariciones", label: "Apariciones y contenidos" },
-  { key: "propiedad-intelectual", label: "Propiedad intelectual" },
   { key: "notas", label: "Notas internas" },
 ];
 
@@ -67,10 +64,6 @@ export default async function Page({ params, searchParams }: Params) {
     .map((item) => item.COM_Fecha)
     .filter((date) => parseDateDDMMYYYY(date) !== null)
     .sort((a, b) => (parseDateDDMMYYYY(b) || 0) - (parseDateDDMMYYYY(a) || 0))[0] || "-";
-  const legalRecords = await getLegalPI();
-  const legalForProject = legalRecords.filter((item) =>
-    matchByProduct(item, "Proyecto", String(project.raw["PROY_NombreProyecto"] || project.title || "")),
-  );
   const equipoInvestigadores = associations.investigators.auto.map((item) => String(item.name || "").trim()).filter(Boolean);
   const equipoInvestigadoresText =
     equipoInvestigadores.length > 0
@@ -290,14 +283,6 @@ export default async function Page({ params, searchParams }: Params) {
                 </div>
               )}
 
-              {activeTab === "propiedad-intelectual" && (
-                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-slate-900">Propiedad intelectual</h2>
-                  <div className="mt-4">
-                    <LegalPITab items={legalForProject} />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
