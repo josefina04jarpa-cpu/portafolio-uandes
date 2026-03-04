@@ -38,6 +38,24 @@ function getInitials(name: string): string {
   return words.slice(0, 2).map((word) => word[0]?.toUpperCase() || "").join("") || "?";
 }
 
+function normalizeCategoryText(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+}
+
+function isSocialCommunication(tipo: string, tipoMedio: string, medio: string): boolean {
+  const text = `${normalizeCategoryText(tipo)} ${normalizeCategoryText(tipoMedio)} ${normalizeCategoryText(medio)}`;
+  return /(instagram|linkedin|facebook|twitter|x.com|x |tiktok|youtube|red social|rrss|social media)/.test(text);
+}
+
+function isEventCommunication(tipo: string, tipoMedio: string, medio: string, title: string): boolean {
+  const text = `${normalizeCategoryText(tipo)} ${normalizeCategoryText(tipoMedio)} ${normalizeCategoryText(medio)} ${normalizeCategoryText(title)}`;
+  return /(evento|seminario|webinar|taller|charla|congreso|feria|lanzamiento|encuentro|jornada|summit)/.test(text);
+}
+
 export default async function Page({ params }: Params) {
   const { slug } = await params;
   const detail = await getSubdireccionDetail(slug);
@@ -162,6 +180,39 @@ export default async function Page({ params }: Params) {
       platform: "LinkedIn",
     }).map((item) => item.value),
   };
+
+  const sortedCommunications = [...detail.communications].sort((a, b) => b.importanceScore - a.importanceScore);
+  const socialCommunications = sortedCommunications.filter((item) => isSocialCommunication(item.tipo, item.tipoMedio, item.medio));
+  const eventCommunications = sortedCommunications.filter(
+    (item) => !isSocialCommunication(item.tipo, item.tipoMedio, item.medio) && isEventCommunication(item.tipo, item.tipoMedio, item.medio, item.title),
+  );
+  const noteCommunications = sortedCommunications.filter(
+    (item) => !isSocialCommunication(item.tipo, item.tipoMedio, item.medio) && !isEventCommunication(item.tipo, item.tipoMedio, item.medio, item.title),
+  );
+
+  const communicationSections = [
+    {
+      key: "notas",
+      title: "Notas",
+      description: "Notas de prensa y menciones editoriales",
+      items: noteCommunications,
+      openByDefault: true,
+    },
+    {
+      key: "redes",
+      title: "Redes sociales",
+      description: "Publicaciones en Instagram, LinkedIn y otras redes",
+      items: socialCommunications,
+      openByDefault: false,
+    },
+    {
+      key: "eventos",
+      title: "Eventos",
+      description: "Cobertura de actividades, seminarios y encuentros",
+      items: eventCommunications,
+      openByDefault: false,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -510,83 +561,65 @@ export default async function Page({ params }: Params) {
                     monthlyValuesByPlatform={monthlyValuesByPlatform}
                   />
 
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {detail.communications.slice(0, 6).map((item, index) => (
-                      <article key={`${item.title}-top-${index}`} className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
-                        <div className="mb-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                          Destacada #{index + 1}
-                        </div>
-                        <h3 className="text-sm font-medium text-slate-900">{item.title}</h3>
-                        <div className="mt-2 text-xs text-gray-500">
-                          {item.medio} · {item.tipo} · {item.fecha}
-                        </div>
-                        <div className="mt-3 grid grid-cols-3 gap-2">
-                          <div className="rounded-lg border border-gray-100 bg-white px-2 py-1.5">
-                            <div className="text-[10px] text-gray-500">Alcance</div>
-                            <div className="text-xs font-semibold text-slate-900">
-                              {item.alcance !== null ? new Intl.NumberFormat("es-CL").format(item.alcance) : "—"}
-                            </div>
+                  <div className="space-y-3">
+                    {communicationSections.map((section) => (
+                      <details key={section.key} className="rounded-xl border border-gray-100 bg-white" open={section.openByDefault}>
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                          <div>
+                            <div className="text-sm font-semibold text-slate-900">{section.title}</div>
+                            <div className="text-xs text-gray-500">{section.description}</div>
                           </div>
-                          <div className="rounded-lg border border-gray-100 bg-white px-2 py-1.5">
-                            <div className="text-[10px] text-gray-500">Impresiones</div>
-                            <div className="text-xs font-semibold text-slate-900">
-                              {item.impresiones !== null ? new Intl.NumberFormat("es-CL").format(item.impresiones) : "—"}
-                            </div>
-                          </div>
-                          <div className="rounded-lg border border-gray-100 bg-white px-2 py-1.5">
-                            <div className="text-[10px] text-gray-500">Interacción</div>
-                            <div className="text-xs font-semibold text-slate-900">
-                              {item.interaccion !== null ? new Intl.NumberFormat("es-CL").format(item.interaccion) : "—"}
-                            </div>
-                          </div>
-                        </div>
-                        {item.link ? (
-                          <a href={item.link} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs font-medium text-slate-700 hover:underline">
-                            Ver publicación
-                          </a>
-                        ) : null}
-                      </article>
-                    ))}
-                  </div>
+                          <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-700">
+                            {section.items.length} publicaciones
+                          </span>
+                        </summary>
 
-                  <div className="rounded-xl border border-gray-100 bg-white">
-                    <div className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-slate-900">
-                      Todas las publicaciones ordenadas por importancia
-                    </div>
-                    <div className="max-h-[460px] overflow-auto">
-                      <table className="min-w-full table-auto">
-                        <thead>
-                          <tr className="bg-gray-50">
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Titular</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Medio</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Fecha</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Alcance</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Impresiones</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Interacción</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Engagement</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {detail.communications.map((item, index) => (
-                            <tr key={`${item.title}-all-${index}`} className="odd:bg-white even:bg-gray-50/40">
-                              <td className="px-3 py-2 text-xs text-slate-900">{item.title}</td>
-                              <td className="px-3 py-2 text-xs text-gray-600">{item.medio}</td>
-                              <td className="px-3 py-2 text-xs text-gray-600">{item.fecha}</td>
-                              <td className="px-3 py-2 text-xs text-gray-700">
-                                {item.alcance !== null ? new Intl.NumberFormat("es-CL").format(item.alcance) : "—"}
-                              </td>
-                              <td className="px-3 py-2 text-xs text-gray-700">
-                                {item.impresiones !== null ? new Intl.NumberFormat("es-CL").format(item.impresiones) : "—"}
-                              </td>
-                              <td className="px-3 py-2 text-xs text-gray-700">
-                                {item.interaccion !== null ? new Intl.NumberFormat("es-CL").format(item.interaccion) : "—"}
-                              </td>
-                              <td className="px-3 py-2 text-xs text-gray-700">{item.engagement !== null ? item.engagement : "—"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        <div className="border-t border-gray-100 px-4 py-4">
+                          {section.items.length === 0 ? (
+                            <p className="text-sm text-gray-500">Sin publicaciones en esta categoría.</p>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                              {section.items.map((item, index) => (
+                                <article key={`${section.key}-${item.title}-${index}`} className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+                                  <div className="mb-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                    {section.title} #{index + 1}
+                                  </div>
+                                  <h3 className="text-sm font-medium text-slate-900">{item.title}</h3>
+                                  <div className="mt-2 text-xs text-gray-500">
+                                    {item.medio} · {item.tipo} · {item.fecha}
+                                  </div>
+                                  <div className="mt-3 grid grid-cols-3 gap-2">
+                                    <div className="rounded-lg border border-gray-100 bg-white px-2 py-1.5">
+                                      <div className="text-[10px] text-gray-500">Alcance</div>
+                                      <div className="text-xs font-semibold text-slate-900">
+                                        {item.alcance !== null ? new Intl.NumberFormat("es-CL").format(item.alcance) : "—"}
+                                      </div>
+                                    </div>
+                                    <div className="rounded-lg border border-gray-100 bg-white px-2 py-1.5">
+                                      <div className="text-[10px] text-gray-500">Impresiones</div>
+                                      <div className="text-xs font-semibold text-slate-900">
+                                        {item.impresiones !== null ? new Intl.NumberFormat("es-CL").format(item.impresiones) : "—"}
+                                      </div>
+                                    </div>
+                                    <div className="rounded-lg border border-gray-100 bg-white px-2 py-1.5">
+                                      <div className="text-[10px] text-gray-500">Interacción</div>
+                                      <div className="text-xs font-semibold text-slate-900">
+                                        {item.interaccion !== null ? new Intl.NumberFormat("es-CL").format(item.interaccion) : "—"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {item.link ? (
+                                    <a href={item.link} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs font-medium text-slate-700 hover:underline">
+                                      Ver publicación
+                                    </a>
+                                  ) : null}
+                                </article>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </details>
+                    ))}
                   </div>
                 </div>
               )}
