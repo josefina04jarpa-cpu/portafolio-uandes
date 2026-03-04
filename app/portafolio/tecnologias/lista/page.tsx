@@ -12,7 +12,7 @@ export default async function Page() {
     const icon = (r.icon || r.emoji || "").toString();
     const badgesField = (r.TECN_ProdCateg || r.TECN_ProdSubcateg || r.badges || r.tags || "").toString();
     const badges = badgesField ? String(badgesField).split(/;|\||,/).map((s) => s.trim()).filter(Boolean) : [];
-    const faculty = (r.TECN_Industria || r.faculty || r.facultad || r.department || "").toString();
+    const faculty = (r.faculty || "").toString();
     const ambito = (r.TECN_Ambito || r.ambito || r.scope || "").toString();
     const estado = (r.TECN_Activo || r.TECN_Transferido || r.estado || r.status || "").toString();
     const techId = (r.TECN_ID || r.techId || r.tech_id || id).toString();

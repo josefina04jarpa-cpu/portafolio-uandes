@@ -72,11 +72,12 @@ export function normalizeRow(raw: ProjectRaw, index = 0): ProjectRow {
   const firstColumnValue = Object.values(raw)[0] ? String(Object.values(raw)[0]).trim() : "";
 
   const idCandidate = pick(raw, [
+    "PROY_ID",
+    "PROY_N",
+    "PROY_CodigoProyecto",
     "id",
     "ID",
-    "PROY_ID",
     "PROYECTO_ID",
-    "PROY_CodigoProyecto",
     "Codigo",
     "Código",
   ]);

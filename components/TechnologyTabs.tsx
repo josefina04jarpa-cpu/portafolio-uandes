@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import TimelineProteccion from "./TimelineProteccion";
-import type { LegalPI } from "../lib/legal";
+import type { LegalPI } from "../lib/legal_pi";
 import ExportSummaryPdfButton from "./ExportSummaryPdfButton";
 
 type Props = { tech: Record<string, unknown>; summaryDescription?: string; legalItems?: LegalPI[] };
@@ -24,17 +24,6 @@ type ExportSheetData = {
 };
 
 type TabsProps = Props & { exportSheetData?: ExportSheetData };
-type IpData = {
-  nombre?: unknown;
-  tipo?: unknown;
-  numeroSolicitud?: unknown;
-  fechaSolicitud?: unknown;
-  numeroRegistro?: unknown;
-  fechaRegistro?: unknown;
-  vigenciaHasta?: unknown;
-  fechaTerminoProteccion?: unknown;
-  pais?: unknown;
-};
 
 export default function TechnologyTabs({ tech, summaryDescription, legalItems = [], exportSheetData }: TabsProps) {
   const tabs = ["Resumen", "Detalles y potencial", "Propiedad intelectual", "Notas internas"];
@@ -69,11 +58,10 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
     return text;
   };
 
-  const ipRecord: Record<string, unknown> =
-    typeof tech.ip === "object" && tech.ip !== null ? (tech.ip as Record<string, unknown>) : {};
+  const ip: Record<string, unknown> = (tech.ip as Record<string, unknown>) ?? {};
   const primaryLegal = legalItems[0];
 
-  const effectiveIp: IpData = primaryLegal
+  const effectiveIp: Record<string, unknown> = primaryLegal
     ? {
         nombre: primaryLegal.LGL_NombrePI,
         tipo: [primaryLegal.LGL_CategPI, primaryLegal.LGL_SubcatPI].filter(Boolean).join(" · "),
@@ -85,22 +73,10 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
         fechaTerminoProteccion: primaryLegal.LGL_FechaExpiracion,
         pais: primaryLegal.LGL_Pais,
       }
-    : {
-        nombre: ipRecord.nombre,
-        tipo: ipRecord.tipo,
-        numeroSolicitud: ipRecord.numeroSolicitud,
-        fechaSolicitud: ipRecord.fechaSolicitud,
-        numeroRegistro: ipRecord.numeroRegistro,
-        fechaRegistro: ipRecord.fechaRegistro,
-        vigenciaHasta: ipRecord.vigenciaHasta,
-        fechaTerminoProteccion: ipRecord.fechaTerminoProteccion,
-        pais: ipRecord.pais,
-      };
+    : ip;
 
-  const hasRegistro = displayValue(effectiveIp.numeroRegistro) !== "-";
+  const hasRegistro = displayValue((effectiveIp as any).numeroRegistro) !== "-";
   const summaryTargetId = `technology-summary-export-${String(tech.id || "detalle")}`;
-  const detailText = displayValue(tech.TECN_Comentario || tech.longDescription || "Sin detalles adicionales.");
-  const internalNotesText = displayValue(tech.internal_notes || "Sin notas internas.");
 
   const renderContent = () => {
     switch (active) {
@@ -119,7 +95,7 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
           </div>
         );
       case 1:
-        return (<div className="text-sm text-gray-700">{detailText}</div>);
+        return (<div className="text-sm text-gray-700">{String(tech.TECN_Comentario || tech.longDescription || 'Sin detalles adicionales.')}</div>);
       case 2:
         return (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -200,7 +176,7 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
         );
       case 3:
         if (modoPublico) return <div className="text-sm text-gray-500">Notas internas ocultas en modo público.</div>;
-        return (<div className="text-sm text-gray-700">{internalNotesText}</div>);
+        return (<div className="text-sm text-gray-700">{String(tech.internal_notes || 'Sin notas internas.')}</div>);
       default:
         return null;
     }

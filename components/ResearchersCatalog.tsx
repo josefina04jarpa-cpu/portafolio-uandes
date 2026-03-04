@@ -114,6 +114,8 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
               setFacultyFilter(e.target.value);
               setCurrentPage(1);
             }}
+            aria-label="Filtrar por facultad"
+            title="Filtrar por facultad"
             className="rounded-lg border border-gray-200 px-3 py-3 text-sm"
           >
             {facultyOptions.map((option) => (
@@ -129,6 +131,8 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
               setUnitFilter(e.target.value);
               setCurrentPage(1);
             }}
+            aria-label="Filtrar por unidad"
+            title="Filtrar por unidad"
             className="rounded-lg border border-gray-200 px-3 py-3 text-sm"
           >
             {unitOptions.map((option) => (

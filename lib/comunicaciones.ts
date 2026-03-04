@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import { parse } from "csv-parse/sync";
 import { resolveDataFile } from "./dataPath";
+import { resolveInvestigatorIdByName, resolveProjectIdByName, resolveTechnologyIdByNameForValidation } from "./entityLinks";
 
 export type Communication = {
   COM_N: number | string;
@@ -382,4 +383,66 @@ export function keepBestSocialPostsForInvestigador(items: Communication[]): Comm
   }
 
   return [...others, ...Array.from(byKey.values())];
+}
+
+// ===== Funciones mejoradas con resolución normalizada (Relaciones 15-17) =====
+// Resuelven COM_Vocero → Investigador y COM_NombreProdAsoc → Proyecto/Tecnología
+// usando matching normalizado (insensible a acentos, mayúsculas, puntuación)
+
+export async function getComunicacionesByInvestigadorNormalized(nombreInvestigador: string): Promise<Communication[]> {
+  const all = getAllComunicaciones();
+  
+  // Intentar resolver usando entityLinks con normalización
+  const investigadorId = await resolveInvestigatorIdByName(nombreInvestigador);
+  if (!investigadorId) return [];
+  
+  // Buscar comunicaciones donde COM_Vocero coincida con el investigador resuelto
+  // Usamos el mismo patrón: exacto normalizado + fallback parcial
+  const target = normalizeKey(nombreInvestigador);
+  if (!target) return [];
+
+  return all.filter((item) => {
+    const vocero = normalizeKey(item.COM_Vocero);
+    if (!vocero) return false;
+    if (vocero === target) return true;
+    return includesBidirectional(vocero, target);
+  });
+}
+
+export async function getComunicacionesByProyectoNormalized(nombreProyecto: string): Promise<Communication[]> {
+  const all = getAllComunicaciones();
+  
+  // Intentar resolver usando entityLinks con normalización
+  const projectId = await resolveProjectIdByName(nombreProyecto);
+  if (!projectId) return [];
+  
+  // Buscar comunicaciones donde COM_NombreProdAsoc coincida con el proyecto resuelto
+  const target = normalizeKey(nombreProyecto);
+  if (!target) return [];
+
+  return all.filter((item) => {
+    const nombre = normalizeKey(item.COM_NombreProdAsoc);
+    if (!nombre) return false;
+    if (nombre === target) return true;
+    return includesBidirectional(nombre, target);
+  });
+}
+
+export async function getComunicacionesByTecnologiaNormalized(nombreTecnologia: string): Promise<Communication[]> {
+  const all = getAllComunicaciones();
+  
+  // Intentar resolver usando entityLinks con normalización
+  const technologyId = await resolveTechnologyIdByNameForValidation(nombreTecnologia);
+  if (!technologyId) return [];
+  
+  // Buscar comunicaciones donde COM_NombreProdAsoc coincida con la tecnología resuelta
+  const target = normalizeKey(nombreTecnologia);
+  if (!target) return [];
+
+  return all.filter((item) => {
+    const nombre = normalizeKey(item.COM_NombreProdAsoc);
+    if (!nombre) return false;
+    if (nombre === target) return true;
+    return includesBidirectional(nombre, target);
+  });
 }

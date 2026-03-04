@@ -2,12 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllTechnologies } from "../../../../lib/tecnologias";
 import { getAllProjects } from "../../../../lib/proyectos";
-import { getLegalPI, matchByProduct } from "../../../../lib/legal";
+import { getLegalPI, matchByProduct } from "../../../../lib/legal_pi";
 import TechnologyTabs from "../../../../components/TechnologyTabs";
 import TechnologySidebar from "../../../../components/TechnologySidebar";
 import TechnologyIllustration from "../../../../components/TechnologyIllustration";
-import { getTechnologyAssociations } from "../../../../lib/entityLinks";
-import { getTRLByTechnologyName } from "../../../../lib/trl";
+import { getTechnologyAssociations, normalizeRelationLabel } from "../../../../lib/entityLinks";
+import { getTRLByTecnologiaNormalized } from "../../../../lib/trl";
+import { getInvolucrados } from "../../../../lib/involucrados";
+import { getAllInstitutions } from "../../../../lib/instituciones";
+import { getFinanciamiento } from "../../../../lib/financiamiento";
 
 type Params = { params: { id: string } | Promise<{ id: string }> };
 
@@ -24,7 +27,7 @@ function normalizeRow(r: Record<string, unknown>, idx = 0) {
   const title = (r.TECN_NombreTecnologia || r.TECN_NombreProyecto || r.title || r.nombre || "Untitled").toString();
   const description = (r.TECN_Descripcion || r.TECN_Comentario || r.description || r.descripcion || "").toString();
   const estado = (r.TECN_Activo || r.TECN_Transferido || r.Estado || "").toString();
-  const faculty = (r.TECN_Industria || r.faculty || r.facultad || "").toString();
+  const faculty = (r.faculty || "").toString();
   const patente = (r.TECN_ComentarioCierre || r.patent || r.patente || "").toString();
   const investigators = (r.TECN_Investigadores || r.investigadores || "").toString();
   const badgesField = (r.TECN_ProdCateg || r.TECN_ProdSubcateg || "").toString();
@@ -66,9 +69,15 @@ export default async function Page({ params }: Params) {
   const normalized = rows.map((r, i) => normalizeRow(r, i));
   const tech = normalized.find((t) => String(t.id) === String(id));
   if (!tech) return notFound();
-  const associations = await getTechnologyAssociations(String(tech.id));
-  const allProjects = await getAllProjects();
-  const legalRecords = await getLegalPI();
+  
+  const [associations, allProjects, legalRecords, involucrados, financiamientoRows, allInstitutions] = await Promise.all([
+    getTechnologyAssociations(String(tech.id)),
+    getAllProjects(),
+    getLegalPI(),
+    getInvolucrados(),
+    getFinanciamiento(),
+    getAllInstitutions(),
+  ]);
 
   const normalizeText = (value: unknown) =>
     String(value ?? "")
@@ -87,12 +96,86 @@ export default async function Page({ params }: Params) {
   const projectSummaryDescription = String(linkedProject?.raw["PROY_Descripcion"] || "").trim();
   const productNameForLegal = String(tech.TECN_NombreTecnologia || tech.title || "").trim();
   const legalForTechnology = legalRecords.filter((item) => matchByProduct(item, "Tecnología", productNameForLegal));
-  const trlByYear = await getTRLByTechnologyName(String(tech.TECN_NombreTecnologia || tech.title || ""));
+  const trlByYear = await getTRLByTecnologiaNormalized(String(tech.TECN_NombreTecnologia || tech.title || ""));
   const latestTrl = trlByYear.length > 0 ? trlByYear[trlByYear.length - 1] : null;
+  
+  // Obtener instituciones desde involucrados de proyectos asociados
+  const institutionsFromInvolucrados = new Map<string, { id: string; name: string; path: string }>();
+  
+  for (const projectItem of associations.projects.auto) {
+    const projectTitle = projectItem.name;
+    const involucradosForProject = involucrados.filter((inv) => {
+      const invProjNorm = normalizeRelationLabel(inv.PROI_NombreProyecto);
+      const projNorm = normalizeRelationLabel(projectTitle);
+      return invProjNorm === projNorm;
+    });
+    
+    for (const inv of involucradosForProject) {
+      const instName = inv.PROI_InstInvolucrada;
+      if (!instName || instName.trim().toLowerCase() === 'n/a') continue;
+      
+      const institution = allInstitutions.find((i) => {
+        const fantasyNorm = normalizeRelationLabel(i.raw.INST_NombreFantasia || "");
+        const completeNorm = normalizeRelationLabel(i.raw.INST_NombreCompleto || "");
+        const nameNorm = normalizeRelationLabel(i.name);
+        const invNorm = normalizeRelationLabel(instName);
+        return fantasyNorm === invNorm || completeNorm === invNorm || nameNorm === invNorm;
+      });
+      
+      if (institution) {
+        institutionsFromInvolucrados.set(institution.id, {
+          id: institution.id,
+          name: institution.name,
+          path: `/instituciones/${encodeURIComponent(institution.id)}`,
+        });
+      }
+    }
+
+    const financiamientoForProject = financiamientoRows.filter((row) => {
+      const financeProjNorm = normalizeRelationLabel(row.PROF_NombreProyecto);
+      const projNorm = normalizeRelationLabel(projectTitle);
+      return financeProjNorm === projNorm;
+    });
+
+    for (const row of financiamientoForProject) {
+      const instName = row.PROF_InstitucReceptora;
+      if (!instName || instName.trim().toLowerCase() === "n/a") continue;
+
+      const institution = allInstitutions.find((i) => {
+        const fantasyNorm = normalizeRelationLabel(i.raw.INST_NombreFantasia || "");
+        const completeNorm = normalizeRelationLabel(i.raw.INST_NombreCompleto || "");
+        const nameNorm = normalizeRelationLabel(i.name);
+        const invNorm = normalizeRelationLabel(instName);
+        return fantasyNorm === invNorm || completeNorm === invNorm || nameNorm === invNorm;
+      });
+
+      if (institution) {
+        institutionsFromInvolucrados.set(institution.id, {
+          id: institution.id,
+          name: institution.name,
+          path: `/instituciones/${encodeURIComponent(institution.id)}`,
+        });
+      }
+    }
+  }
+  
+  // Combinar instituciones con las asociaciones existentes
+  const combinedAssociations = {
+    ...associations,
+    institutions: {
+      auto: [
+        ...associations.institutions.auto,
+        ...Array.from(institutionsFromInvolucrados.values()),
+      ],
+      suggested: associations.institutions.suggested,
+    },
+  };
+  
   const investigatorsEquipo =
-    associations.investigators.auto.length > 0
-      ? associations.investigators.auto.map((item) => String(item.name || "").trim()).filter(Boolean).join(", ")
+    combinedAssociations.investigators.auto.length > 0
+      ? combinedAssociations.investigators.auto.map((item) => String(item.name || "").trim()).filter(Boolean).join(", ")
       : String(tech.investigators || tech.TECN_Investigadores || "").trim();
+  
   const exportSheetData = {
     resumen: String(projectSummaryDescription || tech.PROY_Descripcion || tech.description || "").trim(),
     nombreProyecto: String(linkedProject?.raw["PROY_NombreProyecto"] || tech.TECN_NombreProyecto || tech.title || "").trim(),
@@ -112,18 +195,12 @@ export default async function Page({ params }: Params) {
       : undefined,
   };
 
-  const techTitle = String(tech.title || "");
-  const techDescription = String(tech.description || "");
-  const techId = String(tech.id || "");
-  const techInvestigators = String(tech.investigators || "");
-  const techBadges = Array.isArray(tech.badges) ? tech.badges.map((badge) => String(badge || "")).filter(Boolean) : [];
-
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
       <div className="mb-4 text-sm text-gray-600">
         <Link href="/portafolio/tecnologias" className="text-slate-700 hover:underline">Explorar Tecnologías</Link>
         <span className="mx-2">&gt;</span>
-        <span className="font-medium text-slate-900">{techTitle}</span>
+        <span className="font-medium text-slate-900">{String(tech.title)}</span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -134,17 +211,17 @@ export default async function Page({ params }: Params) {
                 <TechnologyIllustration
                   title={String(tech.title || "")}
                   description={String(tech.description || "")}
-                  badges={techBadges}
+                  badges={Array.isArray(tech.badges) ? tech.badges : []}
                   className="h-36 w-48 rounded-xl"
                 />
                 <div className="mt-2 text-center text-xs text-gray-500">Ilustración 2D referencial</div>
               </div>
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-slate-900">{techTitle}</h1>
-                <p className="mt-2 text-sm text-gray-600">{techDescription}</p>
+                <h1 className="text-2xl font-bold text-slate-900">{String(tech.title)}</h1>
+                <p className="mt-2 text-sm text-gray-600">{String(tech.description)}</p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {techBadges.map((b, i) => (
+                  {Array.isArray(tech.badges) && tech.badges.map((b: string, i: number) => (
                     <span key={i} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium">{b}</span>
                   ))}
                 </div>
@@ -153,9 +230,9 @@ export default async function Page({ params }: Params) {
               <div className="flex flex-col items-end gap-3">
                 <button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Contactar</button>
                 <div className="text-xs text-gray-500">
-                  <div>ID Tecnológico: <span className="font-medium text-slate-900">{techId}</span></div>
-                  <div>Tipo: <span className="font-medium text-slate-900">{techBadges[0] ?? "-"}</span></div>
-                  <div>Investigadores: <span className="font-medium text-slate-900">{techInvestigators || "-"}</span></div>
+                  <div>ID Tecnológico: <span className="font-medium text-slate-900">{String(tech.id)}</span></div>
+                  <div>Tipo: <span className="font-medium text-slate-900">{Array.isArray(tech.badges) ? tech.badges[0] : "-"}</span></div>
+                  <div>Investigadores: <span className="font-medium text-slate-900">{String(tech.investigators) || "-"}</span></div>
                 </div>
               </div>
             </div>
@@ -176,11 +253,11 @@ export default async function Page({ params }: Params) {
             <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-3">
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Investigadores</h3>
-                {associations.investigators.auto.length === 0 ? (
+                {combinedAssociations.investigators.auto.length === 0 ? (
                   <p className="mt-2 text-sm text-gray-600">-</p>
                 ) : (
                   <ul className="mt-2 space-y-1 text-sm">
-                    {associations.investigators.auto.map((item) => (
+                    {combinedAssociations.investigators.auto.map((item) => (
                       <li key={`inv-${item.id}`}>
                         <Link href={item.path} className="font-medium text-slate-900 hover:underline">{item.name}</Link>
                       </li>
@@ -191,11 +268,11 @@ export default async function Page({ params }: Params) {
 
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Proyectos</h3>
-                {associations.projects.auto.length === 0 ? (
+                {combinedAssociations.projects.auto.length === 0 ? (
                   <p className="mt-2 text-sm text-gray-600">-</p>
                 ) : (
                   <ul className="mt-2 space-y-1 text-sm">
-                    {associations.projects.auto.map((item) => (
+                    {combinedAssociations.projects.auto.map((item) => (
                       <li key={`prj-${item.id}`}>
                         <Link href={item.path} className="font-medium text-slate-900 hover:underline">{item.name}</Link>
                       </li>
@@ -206,11 +283,11 @@ export default async function Page({ params }: Params) {
 
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Instituciones</h3>
-                {associations.institutions.auto.length === 0 ? (
+                {combinedAssociations.institutions.auto.length === 0 ? (
                   <p className="mt-2 text-sm text-gray-600">-</p>
                 ) : (
                   <ul className="mt-2 space-y-1 text-sm">
-                    {associations.institutions.auto.map((item) => (
+                    {combinedAssociations.institutions.auto.map((item) => (
                       <li key={`ins-${item.id}`}>
                         <Link href={item.path} className="font-medium text-slate-900 hover:underline">{item.name}</Link>
                       </li>
@@ -220,17 +297,17 @@ export default async function Page({ params }: Params) {
               </div>
             </div>
 
-            {associations.investigators.suggested.length + associations.projects.suggested.length + associations.institutions.suggested.length > 0 && (
+            {combinedAssociations.investigators.suggested.length + combinedAssociations.projects.suggested.length + combinedAssociations.institutions.suggested.length > 0 && (
               <div className="mt-5 rounded-xl border border-dashed border-amber-200 bg-amber-50/40 p-4">
                 <div className="text-xs font-semibold text-amber-800">Posibles coincidencias (revisar)</div>
                 <ul className="mt-2 space-y-1 text-sm text-amber-900">
-                  {associations.investigators.suggested.map((item) => (
+                  {combinedAssociations.investigators.suggested.map((item) => (
                     <li key={`inv-s-${item.id}`}>Investigador: {item.name} <span className="text-xs text-amber-700">({item.score.toFixed(2)})</span></li>
                   ))}
-                  {associations.projects.suggested.map((item) => (
+                  {combinedAssociations.projects.suggested.map((item) => (
                     <li key={`prj-s-${item.id}`}>Proyecto: {item.name} <span className="text-xs text-amber-700">({item.score.toFixed(2)})</span></li>
                   ))}
-                  {associations.institutions.suggested.map((item) => (
+                  {combinedAssociations.institutions.suggested.map((item) => (
                     <li key={`ins-s-${item.id}`}>Institución: {item.name} <span className="text-xs text-amber-700">({item.score.toFixed(2)})</span></li>
                   ))}
                 </ul>

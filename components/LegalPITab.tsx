@@ -1,6 +1,6 @@
 "use client";
 
-import type { LegalPI } from "../lib/legal";
+import type { LegalPI } from "../lib/legal_pi";
 
 type Props = {
   items: LegalPI[];

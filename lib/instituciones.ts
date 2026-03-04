@@ -56,12 +56,12 @@ function normalizeInstitutionRow(raw: Record<string, string>, idx: number): Inst
 
   const idCandidate = pick(raw, [
     "INST_ID",
+    "INST_N",
     "INSTITUCION_ID",
     "ID",
     "id",
     "Codigo",
     "code",
-    "INST_N",
   ]) || firstColumnValue;
 
   const name = normalizeDisplay(

@@ -1,10 +1,11 @@
 import { getAllProjects } from "./proyectos";
 import getAllTechnologies from "./tecnologias";
 import { getAllResearchers } from "./investigadores";
-import { getLegalPI } from "./legal";
+import { getLegalPI } from "./legal_pi";
 import { getAllComunicaciones } from "./comunicaciones";
 import { getAllIndicators } from "./indicadores";
 import { normalizeText } from "./normalize";
+import { getMiembrosBySubdireccion, getPhotoUrlForName } from "./equipoInnovacion";
 import {
   SUBDIRECCIONES,
   type SubdireccionMeta,
@@ -49,12 +50,20 @@ type SubdireccionMetric = {
   value: number | null;
 };
 
+export type TeamMember = {
+  nombre: string;
+  cargo: string;
+  area: string;
+  email: string;
+  photoUrl?: string;
+};
+
 export type SubdireccionCardData = SubdireccionMeta & {
   metrics: [SubdireccionMetric, SubdireccionMetric, SubdireccionMetric];
 };
 
 export type SubdireccionDetailData = SubdireccionMeta & {
-  team: string[];
+  team: TeamMember[];
   projects: RelatedItem[];
   technologies: RelatedItem[];
   indicators: RelatedIndicator[];
@@ -418,9 +427,17 @@ async function buildData(): Promise<CachedData> {
         });
       });
 
-    const team = Array.from(areaAccum.researcherNames).sort((first, second) =>
-      first.localeCompare(second, "es", { sensitivity: "base" }),
-    );
+    // Build team from EquipoInnovación.csv by AreaEstrategica
+    const csvMembers = getMiembrosBySubdireccion(meta.slug);
+    const team: TeamMember[] = csvMembers
+      .sort((a, b) => a.jerarquiaArea - b.jerarquiaArea)
+      .map((m) => ({
+        nombre: m.nombre,
+        cargo: m.cargo,
+        area: m.area,
+        email: m.correo,
+        photoUrl: getPhotoUrlForName(m.nombre) || undefined,
+      }));
 
     const areaCommunications =
       meta.slug === "comunicaciones"
@@ -514,7 +531,7 @@ async function buildData(): Promise<CachedData> {
         ? [
             { label: "Registros PI", value: areaAccum.legalKeys.size },
             { label: "Tecnologías", value: relatedTechnologies.length },
-            { label: "Investigadores", value: team.length },
+            { label: "Ejecutivos", value: team.length },
           ]
         : meta.slug === "comunicaciones"
           ? [
@@ -543,7 +560,7 @@ async function buildData(): Promise<CachedData> {
           ? [
               { label: "N° proyectos postulados", value: relatedProjects.length },
               { label: "N° proyectos adjudicados", value: adjudicatedProjectsCount },
-              { label: "Investigadores", value: team.length },
+              { label: "Ejecutivos", value: team.length },
             ]
         : meta.slug === "proyecto-bici"
           ? [
@@ -555,12 +572,12 @@ async function buildData(): Promise<CachedData> {
                   return acc + (normalizeText(source?.raw.PROY_Activo || "") === "si" ? 1 : 0);
                 }, 0),
               },
-              { label: "Investigadores", value: team.length },
+              { label: "Ejecutivos", value: team.length },
             ]
         : [
             { label: "Proyectos", value: relatedProjects.length },
             { label: "Tecnologías", value: relatedTechnologies.length },
-            { label: "Investigadores", value: team.length },
+            { label: "Ejecutivos", value: team.length },
           ];
 
     cards.push({

@@ -1,0 +1,66 @@
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.accentBar {
+  transition: all 0.3s ease;
+}
+
+.accentBadge {
+  transition: all 0.3s ease;
+}
+
+/* Rocket accent (red) */
+.accentRocket .accentBar {
+  background: linear-gradient(to right, #dc2626, #ef4444);
+}
+
+.accentRocket .accentBadge {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+/* Folder accent (blue) */
+.accentFolder .accentBar {
+  background: linear-gradient(to right, #2563eb, #3b82f6);
+}
+
+.accentFolder .accentBadge {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+/* CPU accent (purple) */
+.accentCpu .accentBar {
+  background: linear-gradient(to right, #7c3aed, #8b5cf6);
+}
+
+.accentCpu .accentBadge {
+  background-color: #ede9fe;
+  color: #7c3aed;
+}
+
+/* Shield accent (green) */
+.accentShield .accentBar {
+  background: linear-gradient(to right, #059669, #10b981);
+}
+
+.accentShield .accentBadge {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+/* Default accent (gray) */
+.accentDefault .accentBar {
+  background: linear-gradient(to right, #6b7280, #9ca3af);
+}
+
+.accentDefault .accentBadge {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}

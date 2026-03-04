@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import TopNavigation from "../../../components/TopNavigation";
 import { getInstitutionById, getAllInstitutions } from "../../../lib/instituciones";
 import { getInstitutionAssociations } from "../../../lib/entityLinks";
+import { getInvolucradosByInstitucionNormalized } from "../../../lib/involucrados";
+import { getFinanciamientoByInstitucionNormalized } from "../../../lib/financiamiento";
+import { getAllProjects } from "../../../lib/proyectos";
+import { getAllTechnologies } from "../../../lib/tecnologias";
+import { normalizeRelationLabel } from "../../../lib/entityLinks";
 
 type Params = {
   params: { id: string } | Promise<{ id: string }>;
@@ -55,14 +60,80 @@ export default async function Page({ params, searchParams }: Params) {
 
   const institution = await getInstitutionById(id);
   if (!institution) return notFound();
+
+  const institutionName = institution.raw.INST_NombreFantasia || institution.raw.INST_NombreCompleto || institution.name;
+
+  const [involucrados, financiamientos, allProjects, allTechnologies] = await Promise.all([
+    getInvolucradosByInstitucionNormalized(institutionName),
+    getFinanciamientoByInstitucionNormalized(institutionName),
+    getAllProjects(),
+    getAllTechnologies(),
+  ]);
+  
   const associations = await getInstitutionAssociations(String(institution.id));
 
-  const projects = associations.projects.auto
-    .map(normalizeProject)
+  // Obtener proyectos desde involucrados
+  const projectsFromInvolucrados = involucrados
+    .filter((inv) => inv.PROI_NombreProyecto && inv.PROI_NombreProyecto.trim())
+    .map((inv) => {
+      const normalized = normalizeRelationLabel(inv.PROI_NombreProyecto);
+      return allProjects.find((p) => normalizeRelationLabel(p.title) === normalized);
+    })
+    .filter((p) => p !== undefined);
+
+  const projectsFromFinanciamiento = financiamientos
+    .filter((row) => row.PROF_NombreProyecto && row.PROF_NombreProyecto.trim())
+    .map((row) => {
+      const normalized = normalizeRelationLabel(row.PROF_NombreProyecto);
+      return allProjects.find((p) => normalizeRelationLabel(p.title) === normalized);
+    })
+    .filter((p) => p !== undefined);
+
+  const projectMap = new Map<string, (typeof projectsFromInvolucrados)[number]>();
+  for (const proj of projectsFromInvolucrados) projectMap.set(proj.id, proj);
+  for (const proj of projectsFromFinanciamiento) projectMap.set(proj.id, proj);
+  const projectsLinked = Array.from(projectMap.values());
+
+  // Obtener tecnologías de los proyectos encontrados
+  const techFromProjects = new Set<string>();
+  for (const proj of projectsLinked) {
+    if (proj && proj.tecnologiasAsociadas) {
+      proj.tecnologiasAsociadas.forEach((techName) => {
+        techFromProjects.add(techName);
+      });
+    }
+  }
+
+  // Mapear tecnologías por nombre
+  const technologiesFromProjects = Array.from(techFromProjects)
+    .map((techName) => {
+      const normalized = normalizeRelationLabel(techName);
+      return allTechnologies.find(
+        (t) =>
+          normalizeRelationLabel(t["TECN_NombreTecnologia"] || "") === normalized ||
+          normalizeRelationLabel(t.name || "") === normalized
+      );
+    })
+    .filter((t) => t !== undefined);
+
+  const projects = projectsLinked
+    .map((p) => ({
+      id: display(p.id),
+      title: display(p.title),
+      path: `/portafolio/proyectos/${encodeURIComponent(p.id)}`,
+    }))
     .filter((item) => item.id !== "-" && item.title !== "-");
 
-  const technologies = associations.technologies.auto
-    .map(normalizeTechnology)
+  const technologies = technologiesFromProjects
+    .map((t) => {
+      const id = display(t["TECN_ID"] || t.id || "");
+      const title = display(t["TECN_NombreTecnologia"] || t.name || "");
+      return {
+        id,
+        title,
+        path: `/portafolio/tecnologias/${encodeURIComponent(t["TECN_ID"] || t.id || "")}`,
+      };
+    })
     .filter((item) => item.id !== "-" && item.title !== "-");
 
   const visibleProjects = showAllProjects ? projects : projects.slice(0, MAX_ITEMS);

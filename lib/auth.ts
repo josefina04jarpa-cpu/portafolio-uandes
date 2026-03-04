@@ -1,34 +1,20 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { getAllEquipoMembers, getEquipoMemberByEmail as getEquipoByEmail } from "./equipoInnovacion";
 
 export const AUTH_COOKIE_NAME = "uandes_indicadores_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 
-export type TeamAccount = { name: string; email: string; role: string };
+export type TeamAccount = { name: string; email: string; role: string; area: string };
 
-export const TEAM_ACCOUNTS: TeamAccount[] = [
-  {
-    name: "Anil Sadarangani",
-    email: "asadaran@gmail.com",
-    role: "Director of Innovation / Ph.D. Biological Sciences, P.U.C.",
-  },
-  { name: "Ariel Véliz", email: "aveliz@uandes.cl", role: "Jefe Financiero" },
-  { name: "Claudio Arriaza", email: "carriaza@uandes.cl", role: "Agente de Comercialización" },
-  { name: "Daniela Sánchez", email: "dsanchezr@uandes.cl", role: "Jefa de Asuntos Jurídicos" },
-  { name: "Danilo Segovia", email: "dsegovia@uandes.cl", role: "Subdirector de Proyectos y Fondos Públicos" },
-  { name: "María Fernanda Gana", email: "mfgana@uandes.cl", role: "Jefa de Comunicaciones de Innovación" },
-  { name: "María Isabel González", email: "migonzalezm@uandes.cl", role: "Coordinadora Iniciativa BiCI" },
-  { name: "Josefina Jarpa", email: "jjarpal@uandes.cl", role: "Content Manager" },
-  { name: "Karen Márquez", email: "kmarquez@uandes.cl", role: "Gestora Tecnológica" },
-  {
-    name: "Silvana Becerra",
-    email: "sbecerra@uandes.cl",
-    role: "Subdirectora Desarrollo Tecnológico y Comercialización",
-  },
-  { name: "Ricardo Cacciuttolo", email: "rcacciuttolo@uandes.cl", role: "Ingeniero de Proyectos" },
-  { name: "Camila Adonis", email: "cadonisr@uandes.cl", role: "Coordinadora de Proyectos de Innovación" },
-  { name: "Vicente Meza", email: "ext_vmeza@uandes.cl", role: "Asistente Open Lab" },
-  { name: "Pamela Inostroza", email: "pinostroza@uandes.cl", role: "Data Scientist" },
-];
+export function getAllTeamAccounts(): TeamAccount[] {
+  const equipo = getAllEquipoMembers();
+  return equipo.map((member) => ({
+    name: member.nombre,
+    email: member.correo,
+    role: member.cargo,
+    area: member.area,
+  }));
+}
 
 export const TEAM_PROJECT_ASSIGNMENTS: Record<string, string[]> = {
   "rcacciuttolo@uandes.cl": [],
@@ -55,12 +41,21 @@ export function getConfiguredTeamPassword(): string {
 
 export function isAuthorizedTeamEmail(email: string): boolean {
   const value = String(email || "").trim().toLowerCase();
-  return TEAM_ACCOUNTS.some((member) => member.email.toLowerCase() === value);
+  const teamAccounts = getAllTeamAccounts();
+  return teamAccounts.some((member) => member.email.toLowerCase() === value);
 }
 
 export function getTeamMemberByEmail(email: string): TeamAccount | null {
   const value = String(email || "").trim().toLowerCase();
-  return TEAM_ACCOUNTS.find((member) => member.email.toLowerCase() === value) || null;
+  const member = getEquipoByEmail(value);
+  if (!member) return null;
+  
+  return {
+    name: member.nombre,
+    email: member.correo,
+    role: member.cargo,
+    area: member.area,
+  };
 }
 
 export function getAssignedProjectIdsForEmail(email: string): string[] {
