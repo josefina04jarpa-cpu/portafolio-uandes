@@ -8,6 +8,7 @@ type CountCard = {
   title: string;
   value: number;
   meta: string;
+  href: string;
 };
 
 async function countRows(fileNames: string[]): Promise<number> {
@@ -41,10 +42,10 @@ export default async function Page() {
   ]);
 
   const cards: CountCard[] = [
-    { title: "Investigadores", value: investigadores, meta: "Total en base 2025" },
-    { title: "Tecnologías", value: tecnologias, meta: "Total en base 2025" },
-    { title: "Instituciones asociadas", value: instituciones, meta: "Total en base 2025" },
-    { title: "Proyectos", value: proyectos, meta: "Total en base 2025" },
+    { title: "Investigadores", value: investigadores, meta: "Total en base 2025", href: "/portafolio/investigadores" },
+    { title: "Tecnologías", value: tecnologias, meta: "Total en base 2025", href: "/portafolio/tecnologias" },
+    { title: "Instituciones asociadas", value: instituciones, meta: "Total en base 2025", href: "/portafolio/instituciones" },
+    { title: "Proyectos", value: proyectos, meta: "Total en base 2025", href: "/portafolio/proyectos" },
   ];
 
   return (
@@ -59,15 +60,16 @@ export default async function Page() {
 
         <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {cards.map((card) => (
-            <article
+            <Link
               key={card.title}
-              className="rounded-2xl border border-gray-200 bg-white p-7 shadow-[0_6px_18px_rgba(15,23,42,0.05)]"
+              href={card.href}
+              className="rounded-2xl border border-gray-200 bg-white p-7 shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition hover:shadow-md"
             >
               <h2 className="text-sm font-medium text-gray-600">{card.title}</h2>
 
               <div className="mt-6 text-5xl font-semibold leading-none tracking-tight text-slate-900">{card.value}</div>
               <p className="mt-3 text-sm text-gray-500">{card.meta}</p>
-            </article>
+            </Link>
           ))}
         </section>
 
