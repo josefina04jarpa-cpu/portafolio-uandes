@@ -40,6 +40,33 @@ function toValidImagePath(value: string): string {
   return `/${input.replace(/^\/+/, "")}`;
 }
 
+function normalizeLookup(value: unknown): string {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("es")
+    .trim();
+}
+
+function shouldUseDialectCostaRicaThumbnail(item: Communication): boolean {
+  const tipo = normalizeLookup(item.COM_TipoComun);
+  const tipoMedio = normalizeLookup(item.COM_TipoMedio);
+  const tema = normalizeLookup(item.COM_TemaPubl);
+  const searchable = normalizeLookup([item.COM_Titular, item.COM_Comentario, item.COM_Link].join(" "));
+
+  const isPostOrPressAppearance =
+    tipo.includes("post") ||
+    tipo.includes("publicacion") ||
+    tipoMedio.includes("prensa") ||
+    tema.includes("apariciones en prensa");
+
+  const hasDialectCostaRicaCopy =
+    searchable.includes("estudio dialect revela severos problemas de comprension de lectura en universitarios en costa rica") ||
+    (searchable.includes("dialect") && searchable.includes("costa rica") && searchable.includes("comprension"));
+
+  return isPostOrPressAppearance && hasDialectCostaRicaCopy;
+}
+
 function getYouTubeVideoId(url: string): string {
   const input = normalize(url);
   if (!input) return "";
@@ -65,6 +92,10 @@ function isYouTubeItem(item: Communication): boolean {
 }
 
 function resolveThumbnail(item: Communication): string {
+  if (shouldUseDialectCostaRicaThumbnail(item)) {
+    return "/estudiodialectrevelaseverosproblemasdecomprensiondelecturaenuniversitariosencostarica.png";
+  }
+
   const directThumbnail = toValidImagePath(item.COM_ThumbnailUrl);
   if (directThumbnail) return directThumbnail;
 
