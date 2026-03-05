@@ -47,7 +47,7 @@ function toOneDriveDirectUrl(value: string): string {
     return input;
   }
 
-  if (!/(1drv\.ms|onedrive\.live\.com)/i.test(input)) {
+  if (!/(1drv\.ms|onedrive\.live\.com|sharepoint\.com)/i.test(input)) {
     return input;
   }
 
@@ -71,7 +71,7 @@ export function resolveImageSrc(value: string): string {
   const fileName = decodedPath.split("/").filter(Boolean).pop() || "";
   const mappedUrl = oneDriveByFileName.get(normalizeLookup(fileName));
   if (mappedUrl) {
-    return mappedUrl;
+    return toOneDriveDirectUrl(mappedUrl);
   }
   const encodedPath = encodeURI(normalizedPath);
 
