@@ -10,6 +10,8 @@ type ResearcherItem = {
   unit: string;
   email: string;
   gender: string;
+  postuladosCount: number;
+  adjudicadosCount: number;
 };
 
 const ITEMS_PER_PAGE = 12;
@@ -43,7 +45,8 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
   const [query, setQuery] = useState("");
   const [facultyFilter, setFacultyFilter] = useState("Todas las facultades");
   const [unitFilter, setUnitFilter] = useState("Todas las unidades");
-  const [genderFilter, setGenderFilter] = useState("Todos");
+  const [genderFilter, setGenderFilter] = useState("Género");
+  const [sortFilter, setSortFilter] = useState("Nombre A-Z");
   const [currentPage, setCurrentPage] = useState(1);
 
   const dedupeSorted = (values: string[]) => {
@@ -68,7 +71,7 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
 
   const filtered = useMemo(() => {
     const q = normalizeSearchText(query);
-    return items.filter((item) => {
+    const base = items.filter((item) => {
       const searchableFields = [
         ...buildNameAliases(item.name),
         normalizeSearchText(item.unit),
@@ -88,13 +91,35 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
 
       const normalizedGender = item.gender.toLocaleLowerCase("es");
       const matchesGender =
+        genderFilter === "Género" ||
         genderFilter === "Todos" ||
         (genderFilter === "Hombre" && normalizedGender.includes("mascul")) ||
         (genderFilter === "Mujer" && normalizedGender.includes("femen"));
 
       return matchesSearch && matchesFaculty && matchesUnit && matchesGender;
     });
-  }, [items, query, facultyFilter, unitFilter, genderFilter]);
+
+    const sorted = [...base];
+
+    if (sortFilter === "Más postulados a menos") {
+      sorted.sort((a, b) => {
+        if (b.postuladosCount !== a.postuladosCount) return b.postuladosCount - a.postuladosCount;
+        return a.name.localeCompare(b.name, "es", { sensitivity: "base" });
+      });
+      return sorted;
+    }
+
+    if (sortFilter === "Más adjudicados a menos") {
+      sorted.sort((a, b) => {
+        if (b.adjudicadosCount !== a.adjudicadosCount) return b.adjudicadosCount - a.adjudicadosCount;
+        return a.name.localeCompare(b.name, "es", { sensitivity: "base" });
+      });
+      return sorted;
+    }
+
+    sorted.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+    return sorted;
+  }, [items, query, facultyFilter, unitFilter, genderFilter, sortFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -104,7 +129,7 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
   return (
     <section className="space-y-6">
       <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
           <input
             type="search"
             value={query}
@@ -113,7 +138,7 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
               setCurrentPage(1);
             }}
             placeholder="Buscar investigador..."
-            className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm shadow-sm md:flex-1"
+            className="w-full min-w-[220px] rounded-lg border border-gray-200 px-4 py-3 text-sm shadow-sm md:min-w-[280px] md:flex-[1.4]"
           />
 
           <select
@@ -160,9 +185,25 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
             title="Filtrar por género"
             className="rounded-lg border border-gray-200 px-3 py-3 text-sm"
           >
+            <option value="Género">Género</option>
             <option value="Todos">Todos</option>
             <option value="Hombre">Hombre</option>
             <option value="Mujer">Mujer</option>
+          </select>
+
+          <select
+            value={sortFilter}
+            onChange={(e) => {
+              setSortFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            aria-label="Ordenar investigadores"
+            title="Ordenar investigadores"
+            className="rounded-lg border border-gray-200 px-3 py-3 text-sm"
+          >
+            <option value="Nombre A-Z">Nombre A-Z</option>
+            <option value="Más postulados a menos">Mayor cantidad de proyectos postulados a menor</option>
+            <option value="Más adjudicados a menos">Mayor cantidad de proyectos adjudicados a menor</option>
           </select>
         </div>
       </div>

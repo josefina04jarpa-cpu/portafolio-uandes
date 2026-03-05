@@ -2,10 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllResearchers, getResearcherById } from "../../../../lib/investigadores";
+import { getAllProjects, type ProjectRow } from "../../../../lib/proyectos";
 import { getInvestigatorAssociations } from "../../../../lib/entityLinks";
 import { getComunicacionesByInvestigador, keepBestSocialPostsForInvestigador } from "../../../../lib/comunicaciones";
 import { getLegalPI, isInTramite, type LegalPI } from "../../../../lib/legal_pi";
 import ComunicacionesSection from "../../../../components/ComunicacionesSection";
+import InvestigatorPerformanceChart from "../../../../components/InvestigatorPerformanceChart";
 
 type Params = { params: { id: string } | Promise<{ id: string }>; searchParams?: Promise<{ tab?: string }> };
 
@@ -104,6 +106,13 @@ function buildResearcherNameCandidates(fullName: string): string[] {
   return Array.from(candidates).filter(Boolean);
 }
 
+function splitProjectLeaders(value: string): string[] {
+  return String(value || "")
+    .split(/[;,\n]+|\s+y\s+/gi)
+    .map((part) => normalizeBasic(part))
+    .filter(Boolean);
+}
+
 function splitCreators(value: string): string[] {
   return String(value || "")
     .split(/[;,\n]+|\s+y\s+/gi)
@@ -163,6 +172,75 @@ function getGalleryImages(raw: Record<string, string>) {
   return Array.from(new Set(images)).slice(0, 6);
 }
 
+type PerformanceByYear = {
+  year: string;
+  postulados: number;
+  adjudicados: number;
+};
+
+function parseProjectYear(project: ProjectRow): string | null {
+  const candidate = String(project.raw["PROY_AnoConvocatoria"] || project.raw["PROY_AñoConvocatoria"] || "").trim();
+
+  if (!candidate) return null;
+  const match = candidate.match(/\b(19|20)\d{2}\b/);
+  return match ? match[0] : null;
+}
+
+function parseAdjudicadoFromRaw(project: ProjectRow): boolean {
+  const value = String(project.raw["PROY_Adjudicado"] || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim()
+    .toLowerCase();
+
+  return ["si", "yes", "true", "1", "adjudicado"].includes(value);
+}
+
+function getProjectPostulacionName(project: ProjectRow): string {
+  return String(project.raw["PROY_NombreProyecto"] || "").trim();
+}
+
+function isLeaderProjectForResearcher(project: ProjectRow, researcherFullName: string, researcherShortName: string): boolean {
+  const leaderField = String(project.raw["PROY_InvestigadorLiderUANDES"] || "").trim();
+  if (!leaderField) return false;
+
+  const leaders = splitProjectLeaders(leaderField);
+  if (leaders.length === 0) return false;
+
+  const candidates = new Set<string>([
+    ...buildResearcherNameCandidates(researcherFullName),
+    ...buildResearcherNameCandidates(researcherShortName),
+  ]);
+
+  return Array.from(candidates).some((candidate) =>
+    leaders.some((leader) => leader.includes(candidate) || candidate.includes(leader)),
+  );
+}
+
+function buildPerformanceByYear(projects: ProjectRow[]): PerformanceByYear[] {
+  const grouped = new Map<string, { postulados: Set<string>; adjudicados: Set<string> }>();
+
+  for (const project of projects) {
+    const year = parseProjectYear(project);
+    if (!year) continue;
+    const projectName = getProjectPostulacionName(project);
+    if (!projectName) continue;
+
+    const current = grouped.get(year) || { postulados: new Set<string>(), adjudicados: new Set<string>() };
+    current.postulados.add(projectName);
+    if (parseAdjudicadoFromRaw(project)) current.adjudicados.add(projectName);
+    grouped.set(year, current);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([year, values]) => ({
+      year,
+      postulados: values.postulados.size,
+      adjudicados: values.adjudicados.size,
+    }))
+    .sort((a, b) => Number(a.year) - Number(b.year));
+}
+
 export async function generateStaticParams() {
   const researchers = await getAllResearchers();
   return researchers.map((r) => ({ id: String(r.id) })).filter((p) => p.id);
@@ -177,11 +255,17 @@ export default async function Page({ params, searchParams }: Params) {
   if (!researcher) return notFound();
 
   const name = displayValue(researcher.name);
+  const fullName =
+    pickRawValue(researcher.raw, ["INV_NombreCompleto", "Nombre completo", "nombre", "name"]) || name;
   const unit = displayValue(researcher.unit);
   const email = displayValue(researcher.email);
   const associations = await getInvestigatorAssociations(String(researcher.id));
-  const fullName =
-    pickRawValue(researcher.raw, ["INV_NombreCompleto", "Nombre completo", "nombre", "name"]) || name;
+  const allProjects = await getAllProjects();
+  const leaderProjects = allProjects.filter((project) =>
+    isLeaderProjectForResearcher(project, fullName, name),
+  );
+  const performanceByYear = buildPerformanceByYear(leaderProjects);
+  const maxPostulados = performanceByYear.reduce((max, item) => Math.max(max, item.postulados), 0);
   const facultad = pickRawValue(researcher.raw, [
     "INV_Facultad",
     "INV_Facultad_Unidad",
@@ -322,6 +406,13 @@ export default async function Page({ params, searchParams }: Params) {
                     <dd className="mt-1 text-sm font-medium text-gray-900">{displayValue(numeroTecnologias)}</dd>
                   </div>
                 </dl>
+
+                <div className="mt-6 rounded-xl border border-gray-100 bg-gray-50/50 p-4">
+                  <h3 className="text-base font-semibold text-slate-900">Rendimiento de proyectos por año</h3>
+                  <p className="mt-1 text-xs text-gray-500">Postulados por año vs adjudicados por año (PROY_Adjudicado).</p>
+
+                  <InvestigatorPerformanceChart data={performanceByYear} />
+                </div>
               </div>
             )}
 
