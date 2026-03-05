@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllTechnologies } from "../../../../lib/tecnologias";
 import { getAllProjects } from "../../../../lib/proyectos";
-import { getLegalPI, matchByProduct } from "../../../../lib/legal_pi";
+import { getLegalPI } from "../../../../lib/legal_pi";
 import TechnologyTabs from "../../../../components/TechnologyTabs";
 import TechnologySidebar from "../../../../components/TechnologySidebar";
 import TechnologyIllustration from "../../../../components/TechnologyIllustration";
@@ -95,8 +95,26 @@ export default async function Page({ params }: Params) {
   });
 
   const projectSummaryDescription = String(linkedProject?.raw["PROY_Descripcion"] || "").trim();
-  const productNameForLegal = String(tech.TECN_NombreTecnologia || tech.title || "").trim();
-  const legalForTechnology = legalRecords.filter((item) => matchByProduct(item, "Tecnología", productNameForLegal));
+  const legalNameCandidates = Array.from(
+    new Set(
+      [
+        String(tech.TECN_NombreTecnologia || ""),
+        String(tech.title || ""),
+      ]
+        .map((value) => normalizeRelationLabel(value))
+        .filter(Boolean),
+    ),
+  );
+
+  const legalForTechnology = legalRecords.filter((item) => {
+    const itemTypeNormalized = normalizeRelationLabel(item.LGL_TipoProdAsoc || "");
+    const itemNameNormalized = normalizeRelationLabel(item.LGL_NombreProdAsoc || "");
+
+    if (!itemNameNormalized || legalNameCandidates.length === 0) return false;
+    if (!legalNameCandidates.includes(itemNameNormalized)) return false;
+
+    return !itemTypeNormalized || itemTypeNormalized.includes("tecnolog");
+  });
   const trlByYear = await getTRLByTecnologiaNormalized(String(tech.TECN_NombreTecnologia || tech.title || ""));
   const communicationsByTechnologyProject = getComunicacionesByProyecto(String(tech.TECN_NombreProyecto || tech.title || ""));
   const communicationsByLinkedProject = linkedProject
