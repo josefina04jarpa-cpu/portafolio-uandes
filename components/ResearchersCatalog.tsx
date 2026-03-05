@@ -9,6 +9,7 @@ type ResearcherItem = {
   faculty: string;
   unit: string;
   email: string;
+  gender: string;
 };
 
 const ITEMS_PER_PAGE = 12;
@@ -42,6 +43,7 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
   const [query, setQuery] = useState("");
   const [facultyFilter, setFacultyFilter] = useState("Todas las facultades");
   const [unitFilter, setUnitFilter] = useState("Todas las unidades");
+  const [genderFilter, setGenderFilter] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
 
   const dedupeSorted = (values: string[]) => {
@@ -84,9 +86,15 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
         unitFilter === "Todas las unidades" ||
         item.unit.toLocaleLowerCase("es") === unitFilter.toLocaleLowerCase("es");
 
-      return matchesSearch && matchesFaculty && matchesUnit;
+      const normalizedGender = item.gender.toLocaleLowerCase("es");
+      const matchesGender =
+        genderFilter === "Todos" ||
+        (genderFilter === "Hombre" && normalizedGender.includes("mascul")) ||
+        (genderFilter === "Mujer" && normalizedGender.includes("femen"));
+
+      return matchesSearch && matchesFaculty && matchesUnit && matchesGender;
     });
-  }, [items, query, facultyFilter, unitFilter]);
+  }, [items, query, facultyFilter, unitFilter, genderFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -140,6 +148,21 @@ export default function ResearchersCatalog({ items }: { items: ResearcherItem[] 
                 {option}
               </option>
             ))}
+          </select>
+
+          <select
+            value={genderFilter}
+            onChange={(e) => {
+              setGenderFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            aria-label="Filtrar por género"
+            title="Filtrar por género"
+            className="rounded-lg border border-gray-200 px-3 py-3 text-sm"
+          >
+            <option value="Todos">Todos</option>
+            <option value="Hombre">Hombre</option>
+            <option value="Mujer">Mujer</option>
           </select>
         </div>
       </div>

@@ -12,6 +12,7 @@ export default async function Page() {
       faculty: String(r.raw.INV_Facultad_Unidad || "").trim() || "Sin información",
       unit: String(r.raw.INV_Facultad_Unidad2 || "").trim() || "Sin información",
       email: String(r.email || "").trim(),
+      gender: String(r.raw.INV_Genero || "").trim(),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
 
