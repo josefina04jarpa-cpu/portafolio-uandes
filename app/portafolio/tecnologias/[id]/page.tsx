@@ -106,15 +106,33 @@ export default async function Page({ params }: Params) {
     ),
   );
 
-  const legalForTechnology = legalRecords.filter((item) => {
-    const itemTypeNormalized = normalizeRelationLabel(item.LGL_TipoProdAsoc || "");
-    const itemNameNormalized = normalizeRelationLabel(item.LGL_NombreProdAsoc || "");
+  const legalForTechnology = Array.from(
+    new Map(
+      legalRecords
+        .filter((item) => {
+          const itemTypeNormalized = normalizeRelationLabel(item.LGL_TipoProdAsoc || "");
+          const itemNameNormalized = normalizeRelationLabel(item.LGL_NombreProdAsoc || "");
 
-    if (!itemNameNormalized || legalNameCandidates.length === 0) return false;
-    if (!legalNameCandidates.includes(itemNameNormalized)) return false;
+          if (!itemNameNormalized || legalNameCandidates.length === 0) return false;
+          if (!legalNameCandidates.includes(itemNameNormalized)) return false;
 
-    return !itemTypeNormalized || itemTypeNormalized.includes("tecnolog");
-  });
+          return !itemTypeNormalized || itemTypeNormalized.includes("tecnolog");
+        })
+        .map((item) => {
+          const identityKey = [
+            normalizeRelationLabel(item.LGL_N || ""),
+            normalizeRelationLabel(item.LGL_NumSolicitud || ""),
+            normalizeRelationLabel(item.LGL_NumeroRegistro || ""),
+            normalizeRelationLabel(item.LGL_NombrePI || ""),
+            normalizeRelationLabel(item.LGL_NombreProdAsoc || ""),
+          ]
+            .filter(Boolean)
+            .join("|");
+
+          return [identityKey || JSON.stringify(item), item] as const;
+        }),
+    ).values(),
+  );
   const trlByYear = await getTRLByTecnologiaNormalized(String(tech.TECN_NombreTecnologia || tech.title || ""));
   const communicationsByTechnologyProject = getComunicacionesByProyecto(String(tech.TECN_NombreProyecto || tech.title || ""));
   const communicationsByLinkedProject = linkedProject
