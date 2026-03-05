@@ -1,529 +1,244 @@
 # Portafolio UANDES
 
-Plataforma web de gestión y visualización de portafolio de tecnologías, proyectos, investigadores e instituciones de la Universidad de los Andes. Construida con **Next.js 16** y **React 19**, utiliza **TypeScript** y **Tailwind CSS** para una experiencia moderna y responsiva.
+Aplicación web institucional para explorar el portafolio de Innovación UANDES.
 
-## Descripción General
+## Qué hace la app hoy
 
-La aplicación permite:
-- Visualizar un catálogo completo de **tecnologías**, **proyectos**, **investigadores** e **instituciones**
-- Ver detalles específicos de cada entidad con información relacionada
-- Gestionar y actualizar datos mediante archivos CSV
-- Acceso restringido a indicadores y datos sensibles mediante autenticación
-- Exportar información en PDF
-- Visualizar datos en gráficos (radar, heatmaps, etc.)
+- Catálogo de **tecnologías**, **proyectos**, **investigadores** e **instituciones**.
+- Sección de **indicadores** con contenido público (Metas de Rectoría) y contenido privado (indicadores internos).
+- **Mi perfil** para ejecutivos del equipo, con datos cargados desde CSV y proyectos asignados.
+- Fichas de detalle con asociaciones entre entidades (proyecto ↔ tecnología ↔ investigador ↔ institución).
 
-## Stack Tecnológico
+## Stack
 
-- **Framework**: Next.js 16.1.6 (App Router con Server Components)
-- **Runtime**: React 19.2.3
-- **Lenguaje**: TypeScript 5
-- **Estilos**: Tailwind CSS 3.4.17
-- **Procesamiento de datos**: csv-parse 6.1.0
-- **Gráficos**: Recharts 2.15.4
-- **Linting**: ESLint 9
+- Next.js 16 (App Router)
+- React 19 + TypeScript
+- Tailwind CSS
+- `csv-parse` para lectura de CSV
 
-## Cómo Funciona la Aplicación
-
-### Flujo de Carga de Datos
-
-1. **Lectura de CSV**: Los archivos CSV en `/data` se leen de forma **síncrona** durante el build y renderizado del servidor usando `csv-parse/sync`
-2. **Normalización**: Los datos se procesan con utilidades en `/lib` para limpiar, validar y estructurar la información
-3. **Vinculación de Entidades**: Se establecen relaciones entre entidades (tecnologías ↔ proyectos ↔ investigadores ↔ instituciones)
-4. **Generación Estática**: Las páginas dinámicas se pre-renderizan en build-time con `generateStaticParams`
-5. **Renderizado Servidor**: Las páginas utilizan Server Components para procesar datos en servidor antes de enviar HTML al cliente
-
-### Archivos CSV y Su Estructura
-
-#### 1. **tecnologias.csv**
-Contiene información de tecnologías desarrolladas.
-
-**Campos principales:**
-- `TECN_ID` / `TECN_N`: Identificador único
-- `TECN_NombreTecnologia`: Nombre de la tecnología
-- `TECN_NombreProyecto`: Proyecto asociado
-- `TECN_Descripcion`: Descripción técnica
-- `TECN_Industria`: Área/facultad (ej: "Salud y Bienestar")
-- `TECN_Investigadores`: Nombre del investigador/PI
-- `TECN_ProdCateg`: Categoría de producto
-- `TECN_ProdSubcateg`: Subcategoría
-- `TECN_Comentario`: Notas adicionales
-- `TECN_Activo`: Estado (Si/No)
-- `TECN_Transferido`: Si ha sido transferida
-
-#### 2. **Proyectos.csv**
-Registro de proyectos de investigación.
-
-**Campos principales:**
-- `PROY_ID` / `PROY_CodigoProyecto`: Identificador único
-- `PROY_NombreProyecto`: Nombre del proyecto
-- `PROY_Descripcion`: Descripción del proyecto
-- `PROY_InvestigadorLiderUANDES`: PI o director del proyecto
-- `PROY_Facultad`: Facultad responsable
-- `PROY_Disciplina`: Disciplina principal
-
-#### 3. **Investigadores.csv**
-Base de datos de investigadores.
-
-**Campos principales:**
-- `INV_ID` / `INV_N`: Identificador único
-- `INV_NombreCompleto`: Nombre completo
-- `INV_Facultad_Unidad`: Facultad o unidad
-- `INV_EmailPrincipal` / `INV_EmailSecundario`: Email
-- `INV_Cargo`: Posición/cargo
-
-#### 4. **Instituciones.csv**
-Datos de instituciones colaboradoras.
-
-**Campos principales:**
-- `INST_ID` / `INST_N`: Identificador único
-- `INST_NombreFantasia` / `INST_RazonSocial`: Nombre
-- `INST_Tipo`: Tipo de institución
-- `INST_Industria`: Sector/industria
-- `INST_Region`: Región geográfica
-
-#### 5. **Legal_PI.csv**
-Registro de propiedad intelectual (patentes, marcas, derechos de autor).
-
-**Campos principales:**
-- `LGL_N`: ID
-- `LGL_NombrePI`: Nombre de la PI
-- `LGL_CategPI`: Categoría (Patente, Marca, etc.)
-- `LGL_SubcatPI`: Subcategoría
-- `LGL_NumSolicitud`: Número de solicitud
-- `LGL_FechaSolicitud`: Fecha de presentación
-- `LGL_NumeroRegistro`: Número de registro concedido
-- `LGL_FechaConcesion`: Fecha de concesión
-- `LGL_TipoProdAsoc`: Tipo de producto asociado
-- `LGL_NombreProdAsoc`: Nombre del producto (ej: nombre de tecnología)
-- `LGL_Estado`: Estado (Concedida, En trámite, Abandonada, etc.)
-
-#### 6. **Tecn-MadurezTecnol.csv**
-Technology Readiness Level y otros niveles de madurez tecnológica.
-
-**Campos principales:**
-- `TECT_N`: ID único
-- `TECT_NombreTecnologia`: Nombre de la tecnología (vinculado a Tecnologias)
-- `TECT_Periodo`: Período o año de evaluación
-- `TECT_CRL`: Commercial Readiness Level
-- `TECT_TRL`: Technology Readiness Level
-- `TECT_BRL`: Business Readiness Level
-- `TECT_IPRL`: Intellectual Property Readiness Level
-- `TECT_TmRL`: Team Readiness Level
-- `TECT_FRL`: Financial Readiness Level
-- `TECT_Comentario`: Comentarios adicionales
-- **Relación**: `TECT_NombreTecnologia` → `Tecnologias.TECN_NombreTecnologia`
-
-#### 7. **Comunicaciones.csv**
-Registro de comunicaciones y publicaciones.
-
-#### 8. **Metas Rectoria 2026.csv**
-Objetivos institucionales para el año 2026.
-
-#### 9. **indicadores-2025.csv**
-Indicadores de desempeño y KPIs.
-
----
-
-## Sistema de Vinculación de Entidades (Entity Links)
-
-El archivo `lib/entityLinks.ts` implementa un sistema de vinculación exacta entre entidades.
-**No existe coincidencia por similitud, patterns, fuzzy matching o normalización**: solo se vinculan
-valores que coinciden **exactamente** tras trim().
-
-### Las 17 Relaciones Aplicadas
-
-1. **Proyectos.PROY_InvestigadorLiderUANDES** → Investigadores.INV_NombreCompleto
-2. **Proyectos.PROY_NombreTecnologia** → Tecnologias.TECN_NombreProyecto
-3. **Proyectos.PROY_ResponsableSeguimientoTecnico** → EquipoInnovacion.Nombre
-4. **Tecnologias.TECN_NombreProyecto** → Proyectos.PROY_NombreProyecto
-5. **Tecn-MadurezTecnol.TECT_NombreTecnologia** → Tecnologias.TECN_NombreTecnologia
-6. **Legal_PI.LGL_NombreProdAsoc** → Tecnologias.TECN_NombreTecnologia (validación)
-7. **Legal_PI.LGL_NombreProdAsoc** → Proyectos.PROY_NombreProyecto (validación)
-8. **Legal_Doc.DOC_NombreProdAsoc** → Tecnologias.TECN_NombreTecnologia (validación)
-9. **Legal_Doc.DOC_NombreProdAsoc** → Proyectos.PROY_NombreProyecto (validación)
-10. **Proy-Financiamiento.PROF_NombreProyecto** → Proyectos.PROY_NombreProyecto (validación)
-11. **Proy-Financiamiento.PROF_InstitucReceptora** → Instituciones.INST_NombreFantasia (validación)
-12. **Proy-Involucrados.PROI_NombreProyecto** → Proyectos.PROY_NombreProyecto (validación)
-13. **Proy-Involucrados.PROI_NombreInvolucrado** → Investigadores.INV_NombreCompleto (validación)
-14. **Proy-Involucrados.PROI_InstInvolucrada** → Instituciones.INST_NombreFantasia (validación)
-15. **Comunicaciones.COM_NombreProdAsoc** → Tecnologias.TECN_NombreTecnologia (validación)
-16. **Comunicaciones.COM_NombreProdAsoc** → Proyectos.PROY_NombreProyecto (validación)
-17. **Comunicaciones.COM_Vocero** → Investigadores.INV_NombreCompleto (validación)
-
-### Tipos de Relaciones
-
-- **Bidireccionales en associations UI** (relaciones 1-4): Se almacenan en memoria y se muestran como asociaciones navegables
-- **Validación de integridad referencial** (relaciones 5-17): Se validan pero los datos se leen directamente desde los CSVs auxiliares
-
-### Cómo Funciona
-
-Para cada relación, si el valor de la columna origen coincide exactamente (case-sensitive, sin trim extra) con el valor
-de la columna destino, se establece el vínculo automáticamente. Ejemplo:
-
-```
-Si: Proyectos.PROY_NombreTecnologia = "Plataforma de datos clínicos"
-ENTONCES: busca Tecnologias. donde TECN_NombreProyecto = "Plataforma de datos clínicos"
-SI EXISTE: crea vínculo bidireccional automáticamente
-```
-
-No hay suposiciones ni búsquedas aproximadas.
-
-### Estructura de Asociaciones Retornadas
-
-```typescript
-type EntityAssociations = {
-  investigators: { auto: EntityRef[]; suggested: [] },  // solo automáticas, sin sugerencias
-  technologies:  { auto: EntityRef[]; suggested: [] },
-  projects:      { auto: EntityRef[]; suggested: [] },
-  institutions:  { auto: EntityRef[]; suggested: [] }
-}
-```
-
----
-
-## Actualización de Datos
-
-### Modelo Relacional y Flujo de Datos
-
-El conjunto de CSVs actúa como la **fuente de verdad**; Power BI o cualquier otro proceso de ETL consume
-estas tablas para construir indicadores y dashboards. El siguiente diagrama describe el orden en el que
-se crean o actualizan entidades cuando se ingresa nueva información:
-
-```
-Inicio -> Investigadores
-       │
-       │ (si no existe: crear `Investigadores` con PK: INV_ID / INV_N)
-       |
-       -> Instituciones
-       │
-       │ (si no existe: crear `Instituciones` con PK: INST_ID / INST_N)
-       │
-       ▼
-    Proyectos (PK: PROY_ID / PROY_N)
-       │
-       ├─> Proy_Involucrados (PK: PROI_N)  // vincula PROI_NombreProyecto -> Proyectos.PROY_NombreProyecto
-       ├─> Proy_Financiamiento (PK: PROF_N) // PROF_NombreProyecto -> Proyectos.PROY_NombreProyecto
-       ├─> Proy_Reuniones (PK: PRR_N) // registro de reuniones por proyecto
-       ├─> Empren-Incubadora (Proyecto -> Proyectos.PROY_NombreProyecto; Responsable -> Investigadores.INV_NombreCompleto)
-       │
-       ▼
-   ¿Genera tecnología?
-       ├─ Sí -> Tecnologia (PK: TECN_N / TECN_ID)
-       │          │
-       │          ├─> Tecn-MadurezTecnol (PK: TECT_N) // TECT_NombreTecnologia -> Tecnologias.TECN_NombreTecnologia
-       │          ├─> PI / Legal_PI (PK: LGL_N) // LGL_NombreProdAsoc -> TECN_NombreTecnologia / PROY_NombreProyecto
-       │          ├─> Documentos (DOC_ID)
-       │          ├─> Comunicaciones (COM_N)
-       │          └─> Sustent (PK: SUST_N)
-       │
-       └─ No -> ├─> Documentos (DOC_ID)
-                ├─> Comunicaciones (COM_N)
-                |
-                └─   Fin del proceso 
-```
-
-A partir de ahí se derivan tablas auxiliares para indicadores, metas rectoría, redes sociales, etc.
-
-### Recomendaciones de Claves Primarias y Foráneas
-
-Se espera que cada tabla incluya identificadores estables. El patrón general es usar `*_ID` cuando exista;
-si no, se acepta `*_N` (nombre) como respaldo.
-
-| Tabla | PK preferido | FKs útiles |
-|-------|--------------|------------|
-| Investigadores | `INV_ID` | N/A |
-| Instituciones | `INST_ID` | N/A |
-| Proyectos | `PROY_ID` | `INV_ID`, `INST_ID` |
-| Tecnologias | `TECN_ID` | `PROY_ID`, `INV_ID`, `INST_ID` |
-| Tecn-MadurezTecnol | `TECT_N` | `TECN_ID` (via TECT_NombreTecnologia) |
-| Legal_PI | `LGL_N` | `TECN_ID`/`PROY_ID` (via LGL_NombreProdAsoc) |
-| Legal Doc | `DOC_ID` | `TECN_ID`/`PROY_ID` |
-| Proy_Involucrados | `PROI_N` | `PROY_ID`, `INV_ID`, `INST_ID` |
-| Proy_Financiamiento | `PROF_N` | `PROY_ID`, `INST_ID` |
-| Sustent | `SUST_N` | `TECN_ID` |
-| Comunicaciones | `COM_N` | `TECN_ID`/`PROY_ID`, `INV_ID` |
-
-> Para otras tablas mirar el diagrama y repetir el mismo principio: si la hoja del workbook es
-> una tabla de Excel, asegúrate de que tenga una columna de ID primaria y de referenciar a las
-> tablas padre mediante su clave.
-
-### Pasos y Comandos para Actualizar los CSVs
-
-1. **Obtener el archivo maestro Excel** (por ejemplo, la versión compartida en OneDrive/SharePoint).
-   - Puedes arrastrarlo a una carpeta sincronizada o descargarlo manualmente.
-   - Alternativa programática: usar el script de exemplo `scripts/download-sharepoint.js` o
-     un flujo de Power Automate para bajarlo automáticamente.
-
-2. **Ejecutar el convertidor**
-
-   ```bash
-   npm install xlsx --save-dev           # solo la primera vez
-   node scripts/excel-to-csv.js \
-     "C:\ruta\a\INGRESO DE DATOS - Proyectos y Tecnologias Innovacion.xlsm"
-   ```
-
-   El comando genera un CSV por hoja en `data/`, recortando filas y columnas vacías y aprovechando
-   rangos de tabla cuando existan. Los archivos viejos serán sobrescritos.
-
-3. **Inspeccionar y completar claves**
-   - Abra los CSVs en Excel, LibreOffice o un editor de texto.
-   - Verifique que cada fila tenga su ID (`PROY_ID`, `INV_ID`, etc.) y que los FKs referencien
-     a filas existentes. Si falta alguna, rellenar manualmente o mediante `VLOOKUP`/`INDEX-MATCH`.
-   - Puede usar Power Query en Excel/Power BI para automatizar estos cruces; un ejemplo ya está
-     incluido en el documento original (ver sección "Script Automatizado (Power Query)").
-
-4. **Validación rápida (opcional)**
-   - Con una base de datos SQLite/CSV o directamente en Power BI/Excel, ejecutar consultas como:
-     ```sql
-     -- IDs duplicados
-     SELECT PROY_ID, COUNT(*) FROM Proyectos GROUP BY PROY_ID HAVING COUNT(*) > 1;
-
-     -- FKs inválidas
-     SELECT DISTINCT PROY_ID FROM Tecnologias
-     WHERE PROY_ID NOT IN (SELECT PROY_ID FROM Proyectos);
-
-     -- nulls donde no debe haberlos
-     SELECT COUNT(*) FROM Tecnologias WHERE PROY_ID IS NULL;
-     ```
-   - No deberían aparecer filas en ninguno de los casos.
-
-5. **Copiar los CSVs al repositorio**
-   - Reemplace los archivos existentes en `/data` con las versiones actualizadas.
-   - Confirme que los nombres de archivo coincidan y que el delimitador siga siendo `;`.
-
-6. **Reconstruir la aplicación**
-
-   ```bash
-   npm run build
-   npm run start   # o npm run dev para desarrollo
-   ```
-
-   Durante el build, las utilidades en `/lib` procesarán los CSVs y resolverán las
-   asociaciones entre entidades usando heurísticas exactas. Los cambios de IDs
-   se reflejarán automáticamente en las rutas y relaciones.
-
-### Notas de Implementación en el Código
-
-- `lib/entityLinks.ts` ahora tiene funciones como `tryMatchById()` y `extractIds()` para
-  dar preferencia a las columnas `*_ID` cuando estén presentes.
-- Los cargadores en `lib/tecnologias.ts`, `lib/proyectos.ts`, `lib/investigadores.ts` y
-  `lib/instituciones.ts` priorizan los identificadores `*_ID` y exponen la propiedad `id`
-  correspondiente.
-
-### Validación Post-Actualización
-
-Ejecuta los mismos checks SQL que en el paso 4. Adicionalmente, avanza por la GUI de la
-aplicación y busca enlaces rotos o entidades no vinculadas; el panel de sugerencias mostrará
-cualquier coincidencia pendiente.
-
----
-
-Con estos pasos podrás mantener los datos sincronizados entre el workbook de entrada, los
-CSV consumidos por la aplicación y el modelo Power BI. Guardar este README como la única
-referencia documentada para la actualización de datos.
-
-
-3. **Reprocessamiento Automático**
-   - Los CSVs se leen nuevamente
-   - Se normalizan nombres e IDs
-   - Se ejecutan todas las vinculaciones
-   - Se regeneran páginas estáticas
-
-### Entidades Que se Actualizan
-
-| Entidad | Archivo | Trigger | Actualización |
-|---------|---------|---------|---------------|
-| **Tecnologías** | `tecnologias.csv` | Build | Catálogo, detalles, vinculaciones |
-| **Proyectos** | `Proyectos.csv` | Build | Catálogo, detalles, vinculaciones |
-| **Investigadores** | `Investigadores.csv` | Build | Perfil, affiliación, catálogo |
-| **Instituciones** | `Instituciones.csv` | Build | Catálogo, detalles |
-| **Emprendimiento** | `Empren-Incubadora.csv` | Build | Proyectos de incubación, responsables |
-| **Propiedad Intelectual** | `Legal_PI.csv` | Build | Timeline, estado, detalles PI |
-| **Madurez Tecnológica** | `Tecn-MadurezTecnol.csv`, `indicadores-*.csv` | Build | Gráficos, dashboards |
-| **Comunicaciones** | `Comunicaciones.csv` | Build | Sección de comunicaciones |
-| **Metas** | `Metas Rectoria 2026.csv` | Build | Dashboard de metas |
-
-### Campos Que Se Mantienen en Sincronía
-
-Al actualizar un CSV, los siguientes campos se actualizan automáticamente en toda la aplicación:
-
-**Para Tecnologías:**
-- Nombre, descripción, categorías
-- Investigadores asociados
-- Proyectos relacionados
-- Estado (activa/transferida)
-- Información de PI vinculada
-
-**Para Proyectos:**
-- Nombre, descripción
-- Director/investigador principal
-- Tecnologías asociadas
-- Disciplina, facultad
-- Estado de adjudicación
-
-**Para Investigadores:**
-- Nombre completo, email
-- Unidad/facultad
-- Proyectos y tecnologías asociadas
-- Información de contacto
-
----
-
-## Setup y Ejecución
-
-### Requisitos Previos
-- Node.js 18+
-- npm o yarn
-
-### Instalación
+## Ejecución
 
 ```bash
-# Clonar repositorio
-git clone <repo-url>
-cd portafolio-uandes
-
-# Instalar dependencias
 npm install
-```
-
-### Desarrollo
-
-```bash
 npm run dev
 ```
 
-El servidor estará en `http://localhost:3000` y se actualizará en tiempo real conforme hagas cambios en los archivos.
-
-### Producción (Build + Start)
+Producción:
 
 ```bash
 npm run build
 npm run start
 ```
 
-### Linting
+## Importar CSV desde Excel
+
+Cuando recibas un archivo Excel (con múltiples hojas), puedes convertirlo a CSV para alimentar `data/`.
+
+1. Instala dependencia (solo si no está instalada):
 
 ```bash
-npm run lint
+npm install -D xlsx
 ```
 
----
-
-## Configuración de Autenticación
-
-### Variables de Entorno
-
-Crea un archivo `.env.local` en la raíz:
+2. Ejecuta el conversor:
 
 ```bash
-# Acceso a indicadores y datos sensibles
-INDICADORES_TEAM_PASSWORD=tu_contraseña_de_equipo
-AUTH_SECRET=una_clave_larga_y_segura_de_al_menos_32_caracteres
+npm run tools:excel-to-csv -- "C:\ruta\archivo.xlsx"
 ```
 
-**Valores por defecto:**
-- `INDICADORES_TEAM_PASSWORD`: `Innovacion2026` (si no se define)
-- `AUTH_SECRET`: Debe definirse para sesiones seguras
+3. Resultado:
 
----
+- Se generan archivos `data/<NombreHoja>.csv`.
+- Delimitador de salida: `;`.
+- Si existe una tabla Excel con el mismo nombre que la hoja, se exporta ese rango (evita ruido fuera de tabla).
 
-## Estructura del Proyecto
+Notas:
 
-```
-portafolio-uandes/
-├── app/                      # Next.js App Router
-│   ├── layout.tsx           # Layout raíz
-│   ├── page.tsx             # Home
-│   ├── api/                 # API routes (auth, etc)
-│   └── portafolio/
-│       ├── page.tsx         # Catálogo principal
-│       ├── tecnologias/
-│       │   ├── page.tsx     # Listado
-│       │   └── [id]/page.tsx # Detalle (SSG)
-│       ├── proyectos/       # Similar estructura
-│       ├── investigadores/
-│       └── instituciones/
-├── components/              # Componentes React reutilizables
-│   ├── TechnologyTabs.tsx
-│   ├── TechnologySidebar.tsx
-│   ├── IndicadoresDashboard.tsx
-│   └── ... (otros componentes)
-├── lib/                     # Utilidades y lógica de datos
-│   ├── dataPath.ts         # Resolución de rutas CSV
-│   ├── normalize.ts        # Normalización de texto
-│   ├── entityLinks.ts      # Vinculación de entidades
-│   ├── tecnologias.ts      # Carga de tecnologías
-│   ├── proyectos.ts        # Carga de proyectos
-│   ├── investigadores.ts   # Carga de investigadores
-│   ├── instituciones.ts    # Carga de instituciones
-│   ├── legal.ts            # Carga de PI
-│   ├── trl.ts              # Carga de TRL
-│   └── ... (otros datos)
-├── data/                    # Archivos CSV
-│   ├── tecnologias.csv
-│   ├── Proyectos.csv
-│   ├── Investigadores.csv
-│   ├── Instituciones.csv
-│   ├── Legal PI.csv
-│   ├── TRL.csv
-│   └── ... (otros CSVs)
-├── public/                  # Archivos estáticos
-├── tailwind.config.js       # Configuración de Tailwind
-├── tsconfig.json           # Configuración de TypeScript
-└── package.json            # Dependencias y scripts
-```
+- El script ignora hojas `Codebook`, `Inicio` y hojas que comienzan con `tbl_`.
+- Antes de reemplazar datos productivos, valida nombres de hoja y encabezados esperados por los módulos en `lib/`.
 
----
+## Secciones de la aplicación
 
-## Notas de Desarrollo
+### Inicio (`/`)
 
-### Páginas Generadas Estáticamente
+- Landing con accesos a **Portafolio** e **Indicadores**.
 
-Las siguientes rutas se pre-generan en build-time:
+### Portafolio (`/portafolio`)
 
-- `/portafolio/tecnologias/[id]` → Una página por cada tecnología en CSV
-- `/portafolio/proyectos/[id]` → Una página por cada proyecto
-- `/portafolio/investigadores/[id]` → Una página por cada investigador
-- `/portafolio/instituciones/[id]` → Una página por cada institución
+Panel de entrada al catálogo con conteos de:
 
-Esto asegura **cero latencia** y máxima **compatibilidad SEO**.
+- Investigadores
+- Tecnologías
+- Instituciones
+- Proyectos
 
-### Caché y Performance
+Subsecciones principales:
 
-- Los datos CSV se leen y cachean durante el build
-- No hay consultas a base de datos en tiempo de ejecución
-- Las páginas son completamente estáticas
-- Las vinculaciones se calculan una sola vez
+- **Investigadores** (`/portafolio/investigadores`): directorio por nombre, facultad/unidad y correo.
+- **Proyectos** (`/portafolio/proyectos`): listado por título, disciplina, investigador y estado de adjudicación.
+- **Tecnologías** (`/portafolio/tecnologias`): dashboard con distribución por facultad, TRL y liderazgo.
+- **Instituciones** (`/instituciones`): catálogo por tipo, industria y región.
 
----
+Fichas de detalle:
 
-## Troubleshooting
+- **Tecnología** (`/portafolio/tecnologias/[id]`): resumen, TRL histórico, PI relacionada, asociaciones y exportación PDF.
+- **Proyecto** (`/portafolio/proyectos/[id]`): resumen, tecnologías/investigadores/instituciones asociadas, apariciones en comunicaciones, ejecutivos responsables.
+- **Investigador** (`/portafolio/investigadores/[id]`): resumen, proyectos/tecnologías asociadas, apariciones y PI vinculada.
+- **Institución** (`/instituciones/[id]`): resumen y asociaciones por proyectos/tecnologías.
 
-### El servidor de desarrollo no ve cambios en CSV
+### Indicadores (`/indicadores`, `/indicadores/2024`)
 
-**Solución**: Tras editar un CSV, debes reiniciar el servidor (`npm run dev` nuevamente).
+- **Público**: tabla de Metas de Rectoría desde `Metas Rectoria 2026.csv`.
+- **Privado** (requiere sesión): dashboard de indicadores internos desde `indicadores-<año>.csv`.
+- Submenú de **Subdirecciones** (`/indicadores/subdirecciones`) con vistas por área:
+  - Subdirección de Proyectos
+  - Desarrollo Tecnológico y Comercialización
+  - Asuntos Jurídicos
+  - Comunicaciones
+  - Emprendimiento
+  - Proyecto BiCI
 
-### Entidades no se vinculan
+### Mi perfil (`/mi-perfil`)
 
-Revisa que:
-1. Los nombres sean similares (≥85% de similitud)
-2. Los campos de vinculación estén rellenos (no sean N/A o vacíos)
-3. Los caracteres especiales se manejen correctamente (diacríticos, etc)
+- Requiere sesión.
+- Muestra nombre, cargo, área, correo y foto del integrante del equipo.
+- Lista proyectos donde la persona aparece como:
+  - `PROY_ResponsablePostulacion`
+  - `PROY_ResponsableSeguimientoTecnico`
 
-### Puerto 3000 en uso
+### Ingreso (`/ingresar`)
 
-```bash
-# En Windows
-netstat -ano | findstr :3000
-taskkill /PID <ID> /F
+- Login por correo autorizado + contraseña de equipo.
+- Cookie firmada (`uandes_indicadores_session`) para acceso a contenido privado.
 
-# En macOS/Linux
-lsof -i :3000
-kill -9 <PID>
-```
+## Fuente de datos (CSV)
 
----
+La app lee archivos CSV desde `data/` en servidor (build/render).
 
-## Contacto y Soporte
+### CSV usados por la aplicación
 
-Para reportar bugs o sugerencias, contacta al equipo de Innovación en UANDES.
+1. `tecnologias.csv`
+   - Catálogo base de tecnologías.
+   - Campos usados: `TECN_ID`/`TECN_N`, `TECN_NombreTecnologia`, `TECN_NombreProyecto`, `TECN_Descripcion`, `TECN_Investigadores`, categorías de producto.
+
+2. `Proyectos.csv`
+   - Catálogo base de proyectos.
+   - Campos usados: `PROY_ID`/`PROY_N`/`PROY_CodigoProyecto`, `PROY_NombreProyecto`, `PROY_Descripcion`, `PROY_InvestigadorLiderUANDES`, `PROY_Adjudicado`, responsables, continuidad.
+
+3. `Investigadores.csv`
+   - Directorio de investigadores.
+   - Campos usados: `INV_ID`/`INV_N`, `INV_NombreCompleto`, `INV_Facultad_Unidad`, correos.
+
+4. `Instituciones.csv`
+   - Catálogo de instituciones colaboradoras.
+   - Campos usados: `INST_ID`/`INST_N`, `INST_NombreFantasia`/`INST_RazonSocial`, `INST_Tipo`, `INST_Industria`, `INST_Region`.
+
+5. `EquipoInnovación.csv`
+   - Base del equipo interno para autenticación/perfil/subdirecciones.
+   - Campos usados: `Nombre`, `Cargo`, `Area`, `AreaEstrategica`, `Correo`, `JerarquiaArea`.
+
+6. `Comunicaciones.csv`
+   - Apariciones, publicaciones y métricas de difusión.
+   - Campos usados: `COM_Titular`, `COM_TipoComun`, `COM_TipoMedio`, `COM_Medio`, `COM_Fecha`, `COM_Vocero`, `COM_NombreProdAsoc`, métricas (`COM_Impresiones`, `COM_Alcance`, etc.).
+
+7. `Tecn-MadurezTecnol.csv`
+   - Historial de madurez por tecnología.
+   - Campos usados: `TECT_NombreTecnologia`, `TECT_Periodo`, `TECT_TRL`, `TECT_CRL`, `TECT_BRL`, `TECT_IPRL`, `TECT_TmRL`, `TECT_FRL`.
+
+8. `Legal_PI.csv`
+   - Propiedad intelectual asociada a tecnologías/proyectos.
+   - Campos usados: `LGL_NombrePI`, `LGL_TipoProdAsoc`, `LGL_NombreProdAsoc`, `LGL_CreadoresUANDES`, `LGL_Estado`, fechas y datos de solicitud/registro.
+
+9. `Legal_Doc.csv`
+   - Documentación legal asociada a productos/proyectos.
+   - Campos usados: `DOC_AsocProducto`, `DOC_NombreProdAsoc`, tipo/categoría de contrato, estado y montos.
+
+10. `Proy-Financiamiento.csv`
+    - Financiamiento por proyecto e institución receptora.
+    - Campos usados: `PROF_NombreProyecto`, `PROF_InstitucReceptora`, tipo de financiamiento, montos.
+
+11. `Proy-Involucrados.csv`
+    - Participantes vinculados a proyectos.
+    - Campos usados: `PROI_NombreProyecto`, `PROI_NombreInvolucrado`, `PROI_InstInvolucrada`, rol/horas/fechas.
+
+12. `Metas Rectoria 2026.csv`
+    - Metas y cumplimiento por ámbito/concepto para indicadores públicos.
+
+13. `Empren-Incubadora.csv`
+    - Iniciativas de incubación/emprendimiento para tarjetas y métricas de subdirección.
+
+14. `indicadores-2024.csv`, `indicadores-2025.csv`, etc. (patrón `indicadores-<año>.csv`)
+    - Indicadores internos por año.
+    - Se consumen solo para usuarios autenticados.
+    - Si el archivo no existe, la app devuelve lista vacía (sin romper).
+
+### CSV presentes pero no consumidos por la app (actualmente)
+
+- `Com-Seguidores.csv`
+- `Pagos_PI.csv`
+- `Proy-Controlling.csv`
+- `Proy-Reuniones.csv`
+- `Sustentabilidad.csv`
+
+## Relaciones entre CSV (implementadas en código)
+
+### Relaciones principales usadas para asociaciones automáticas
+
+1. **Proyecto → Investigador**
+   - `Proyectos.PROY_InvestigadorLiderUANDES` ↔ `Investigadores.INV_NombreCompleto`
+
+2. **Proyecto → Tecnología**
+   - `Proyectos.PROY_NombreTecnologia` ↔ `tecnologias.TECN_NombreTecnologia`
+
+3. **Tecnología → Proyecto**
+   - `tecnologias.TECN_NombreProyecto` ↔ `Proyectos.PROY_NombreProyecto`
+
+4. **Proyecto ↔ Proyecto (continuidad)**
+   - `Proyectos.PROY_ProyectoAnteriorContinuidad` ↔ `Proyectos.PROY_NombreProyecto`
+   - La relación se guarda bidireccional (actual y anterior se conectan entre sí).
+
+### Relaciones auxiliares usadas en vistas de detalle/validación
+
+5. **TRL por tecnología**
+   - `Tecn-MadurezTecnol.TECT_NombreTecnologia` ↔ `tecnologias.TECN_NombreTecnologia`
+
+6. **Legal PI por tecnología/proyecto**
+   - `Legal_PI.LGL_NombreProdAsoc` ↔ nombres de `tecnologias` o `Proyectos`
+
+7. **Legal Doc por tecnología/proyecto**
+   - `Legal_Doc.DOC_NombreProdAsoc` ↔ nombres de `tecnologias` o `Proyectos`
+
+8. **Financiamiento por proyecto/institución**
+   - `Proy-Financiamiento.PROF_NombreProyecto` ↔ `Proyectos.PROY_NombreProyecto`
+   - `Proy-Financiamiento.PROF_InstitucReceptora` ↔ `Instituciones.INST_NombreFantasia`
+
+9. **Involucrados por proyecto/investigador/institución**
+   - `Proy-Involucrados.PROI_NombreProyecto` ↔ `Proyectos.PROY_NombreProyecto`
+   - `Proy-Involucrados.PROI_NombreInvolucrado` ↔ `Investigadores.INV_NombreCompleto`
+   - `Proy-Involucrados.PROI_InstInvolucrada` ↔ `Instituciones.INST_NombreFantasia`
+
+10. **Comunicaciones por vocero/producto**
+    - `Comunicaciones.COM_Vocero` ↔ investigadores
+    - `Comunicaciones.COM_NombreProdAsoc` ↔ proyectos o tecnologías
+
+11. **Perfil ejecutivo (Mi perfil)**
+    - `EquipoInnovación.Nombre/Correo` ↔ responsables en `Proyectos`:
+      - `PROY_ResponsablePostulacion`
+      - `PROY_ResponsableSeguimientoTecnico`
+
+> Las coincidencias de nombres se hacen con normalización de texto (acentos, mayúsculas/minúsculas y puntuación), y en perfiles ejecutivos se exige coincidencia exacta normalizada para evitar falsos positivos.
+
+## Autenticación y variables de entorno
+
+Variables soportadas:
+
+- `AUTH_SECRET` o `NEXTAUTH_SECRET`: firma de sesión.
+- `INDICADORES_TEAM_PASSWORD` o `INDICADORES_PASSWORD`: contraseña del formulario de ingreso.
+
+Si no se configuran, existen valores por defecto de desarrollo definidos en código.
+
+## Notas de implementación
+
+- La app usa Server Components para carga de datos en servidor.
+- Los CSV se leen desde `data/` y se normalizan en módulos de `lib/`.
+- La disponibilidad de indicadores internos depende del archivo `indicadores-<año>.csv` y de sesión activa.

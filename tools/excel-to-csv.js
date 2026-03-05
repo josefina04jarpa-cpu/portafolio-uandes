@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Simple utility to convert every sheet of an Excel workbook into a CSV file.
- * Usage: node scripts/excel-to-csv.js /path/to/workbook.xlsx
+ * Usage: node tools/excel-to-csv.js /path/to/workbook.xlsx
  *
  * Each sheet will be written into `data/<sheetname>.csv` (sheet names are
  * sanitized to safe file names). Existing files are overwritten.
@@ -18,7 +18,7 @@ const path = require("path");
 const xlsx = require("xlsx");
 
 if (process.argv.length < 3) {
-  console.error("Usage: node scripts/excel-to-csv.js /path/to/file.xlsx");
+  console.error("Usage: node tools/excel-to-csv.js /path/to/file.xlsx");
   process.exit(1);
 }
 

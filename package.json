@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tools:excel-to-csv": "node tools/excel-to-csv.js"
   },
   "dependencies": {
     "csv-parse": "^6.1.0",
