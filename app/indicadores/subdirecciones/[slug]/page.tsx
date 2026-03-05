@@ -6,6 +6,7 @@ import FacultyDistributionChart from "../../../../components/emprendimiento/Facu
 import TopNavigation from "../../../../components/TopNavigation";
 import { getMonthlyImpressions } from "../../../../lib/comunicaciones";
 import { getIncubadoraSummary } from "../../../../lib/incubadora";
+import { resolveImageSrc } from "../../../../lib/imageUrl";
 import { normalizeText } from "../../../../lib/normalize";
 import { getSubdireccionDetail } from "../../../../lib/subdirecciones";
 import { SUBDIRECCIONES } from "../../../../lib/subdireccionesMap";
@@ -142,7 +143,7 @@ export default async function Page({ params }: Params) {
             {banner && (
               <div className="-mx-6 -mt-6 mb-6 overflow-hidden rounded-t-2xl border-b border-gray-100">
                 <Image
-                  src={banner.src}
+                  src={resolveImageSrc(banner.src)}
                   alt={banner.alt}
                   width={1600}
                   height={520}

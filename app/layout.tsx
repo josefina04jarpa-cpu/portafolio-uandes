@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Image from "next/image";
 import "./globals.css";
+import { resolveImageSrc } from "../lib/imageUrl";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,17 +23,23 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const backgroundNetworkSrc = resolveImageSrc("/background-network.png");
+
   return (
-    <html lang="en">
+    <html lang="en" style={{ backgroundColor: "#f1f5f9" }}>
       <body
+        style={{ backgroundColor: "#f1f5f9" }}
         className={`${geistSans.variable} ${geistMono.variable} relative min-h-screen antialiased`}
       >
-        <Image
-          src="/background-network.png"
-          alt=""
-          fill
-          priority
-          className="pointer-events-none fixed inset-0 object-cover"
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0"
+          style={{
+            backgroundImage: `url('${backgroundNetworkSrc}')`,
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "cover",
+          }}
         />
         <div className="relative z-10">{children}</div>
       </body>

@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "fs";
 import path from "path";
 import type { SubdireccionSlug } from "./subdireccionesMap";
+import { resolveImageSrc } from "./imageUrl";
 
 export type EquipoMember = {
   nombre: string;
@@ -67,7 +68,7 @@ function findPhotoForName(nombre: string): string | null {
     
     // Exact match after removing extension
     if (photoName === nombre.toLowerCase()) {
-      return `/${photo}`;
+      return resolveImageSrc(`/${photo}`);
     }
     
     // Match if photo name contains parts of the person's name
@@ -77,8 +78,13 @@ function findPhotoForName(nombre: string): string | null {
     );
     
     if (matchingParts.length >= 2) {
-      return `/${photo}`;
+      return resolveImageSrc(`/${photo}`);
     }
+  }
+
+  const remoteBase = String(process.env.NEXT_PUBLIC_ONEDRIVE_IMAGES_BASE_URL || "").trim();
+  if (remoteBase) {
+    return resolveImageSrc(`/${nombre}.png`);
   }
   
   return null;

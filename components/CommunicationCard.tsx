@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { Communication } from "@/lib/comunicaciones";
+import { resolveImageSrc } from "@/lib/imageUrl";
 
 type CommunicationCardProps = {
   item: Communication;
@@ -35,9 +36,9 @@ function summarizeTitle(text: string, maxLength = 96): string {
 function toValidImagePath(value: string): string {
   const input = normalize(value);
   if (!input) return "";
-  if (/^https?:\/\//i.test(input)) return input;
-  if (input.startsWith("/")) return input;
-  return `/${input.replace(/^\/+/, "")}`;
+  if (/^https?:\/\//i.test(input)) return resolveImageSrc(input);
+  if (input.startsWith("/")) return resolveImageSrc(input);
+  return resolveImageSrc(`/${input.replace(/^\/+/, "")}`);
 }
 
 function normalizeLookup(value: unknown): string {
@@ -93,7 +94,7 @@ function isYouTubeItem(item: Communication): boolean {
 
 function resolveThumbnail(item: Communication): string {
   if (shouldUseDialectCostaRicaThumbnail(item)) {
-    return "/estudiodialectrevelaseverosproblemasdecomprensiondelecturaenuniversitariosencostarica.png";
+    return resolveImageSrc("/estudiodialectrevelaseverosproblemasdecomprensiondelecturaenuniversitariosencostarica.png");
   }
 
   const directThumbnail = toValidImagePath(item.COM_ThumbnailUrl);

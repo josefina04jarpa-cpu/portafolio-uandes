@@ -3,6 +3,7 @@ import Image from "next/image";
 import { cookies } from "next/headers";
 import { AUTH_COOKIE_NAME, getSessionEmailFromToken } from "../lib/auth";
 import IndicadoresYearSelect from "./IndicadoresYearSelect";
+import { resolveImageSrc } from "../lib/imageUrl";
 
 type Props = {
   active?: "portafolio" | "indicadores" | "perfil";
@@ -16,6 +17,7 @@ export default async function TopNavigation({ active = "portafolio", indicadores
   const isPortafolio = active === "portafolio";
   const isIndicadores = active === "indicadores";
   const isPerfil = active === "perfil";
+  const logoSrc = resolveImageSrc("/logo-innovacion.png");
 
   return (
     <header className="border-b bg-white">
@@ -24,7 +26,7 @@ export default async function TopNavigation({ active = "portafolio", indicadores
           <div className="flex items-center gap-8">
             <Link href="/" className="inline-flex items-center">
               <Image
-                src="/logo-innovacion.png"
+                src={logoSrc}
                 alt="Innovación Uandes"
                 width={165}
                 height={35}

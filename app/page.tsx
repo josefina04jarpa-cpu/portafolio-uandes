@@ -1,14 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
+import { resolveImageSrc } from "../lib/imageUrl";
 
 export default function Home() {
+  const logoSrc = resolveImageSrc("/logo-innovacion.png");
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12">
       <main className="relative z-10 w-full max-w-4xl rounded-2xl bg-white/60 pb-20 pt-8 px-8 shadow-lg backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-y-8 text-center">
           <h1 className="mt-6 flex w-full max-w-[39.67rem] justify-center">
             <Image
-              src="/logo-innovacion.png"
+              src={logoSrc}
               alt="Innovación Uandes"
               width={320}
               height={96}

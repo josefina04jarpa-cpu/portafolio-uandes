@@ -6,6 +6,7 @@ import { getAllProjects, type ProjectRow } from "../../../../lib/proyectos";
 import { getInvestigatorAssociations } from "../../../../lib/entityLinks";
 import { getComunicacionesByInvestigador, keepBestSocialPostsForInvestigador } from "../../../../lib/comunicaciones";
 import { getLegalPI, isInTramite, type LegalPI } from "../../../../lib/legal_pi";
+import { resolveImageSrc } from "../../../../lib/imageUrl";
 import ComunicacionesSection from "../../../../components/ComunicacionesSection";
 import InvestigatorPerformanceChart from "../../../../components/InvestigatorPerformanceChart";
 
@@ -87,7 +88,7 @@ function getResearcherProfilePhoto(name: string): string | null {
     return tokens.length > 0 && tokens.every((token) => normalizedWords.has(token));
   });
   if (!match) return null;
-  return encodeURI(`/${match.fileName}`);
+  return resolveImageSrc(`/${match.fileName}`);
 }
 
 function buildResearcherNameCandidates(fullName: string): string[] {
@@ -596,7 +597,7 @@ export default async function Page({ params, searchParams }: Params) {
                   <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
                     {galleryImages.map((src, idx) => (
                       <div key={`${src}-${idx}`} className="overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
-                        <img src={src} alt={`Imagen ${idx + 1} de ${name}`} className="h-36 w-full object-cover" />
+                        <img src={resolveImageSrc(src)} alt={`Imagen ${idx + 1} de ${name}`} className="h-36 w-full object-cover" />
                       </div>
                     ))}
                   </div>

@@ -16,6 +16,40 @@ Aplicación web institucional para explorar el portafolio de Innovación UANDES.
 - Tailwind CSS
 - `csv-parse` para lectura de CSV
 
+<<<<<<< HEAD
+## Ejecución
+=======
+## Imágenes en OneDrive (para aliviar Vercel)
+
+El proyecto ya está preparado para consumir imágenes remotas desde OneDrive y evitar la optimización de imágenes en Vercel.
+- `csv-parse` para lectura de CSV
+
+## Imágenes en OneDrive (para aliviar Vercel)
+
+El proyecto ya está preparado para consumir imágenes remotas desde OneDrive y evitar la optimización de imágenes en Vercel.
+
+### 1) Subir imágenes a OneDrive
+
+- Sube tus imágenes a una carpeta compartida de OneDrive.
+- Comparte cada archivo con permiso de lectura pública ("Cualquier persona con el vínculo").
+
+### 2) Usar links en los datos
+
+- En columnas de imágenes (por ejemplo miniaturas en comunicaciones), pega el link compartido de OneDrive (`1drv.ms` o `onedrive.live.com`).
+- La app convierte automáticamente ese link a una URL directa descargable (`api.onedrive.com`) para que renderice correctamente.
+
+### 3) (Opcional) Reemplazar imágenes locales por una base remota
+
+Si quieres mover también imágenes que hoy están en `public/` (logo, banners, fotos por nombre), define:
+
+```bash
+NEXT_PUBLIC_ONEDRIVE_IMAGES_BASE_URL=https://TU_BASE_REMOTA
+```
+
+Con esa variable, cualquier ruta local tipo `/logo-innovacion.png` se resolverá contra esa base remota.
+
+> Nota: para fotos por nombre (equipo/investigadores), conserva nombres de archivo consistentes para que el matching siga funcionando.
+
 ## Ejecución
 
 ```bash
