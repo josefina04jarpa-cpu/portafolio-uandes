@@ -11,6 +11,7 @@ import { getTRLByTecnologiaNormalized } from "../../../../lib/trl";
 import { getInvolucrados } from "../../../../lib/involucrados";
 import { getAllInstitutions } from "../../../../lib/instituciones";
 import { getFinanciamiento } from "../../../../lib/financiamiento";
+import { getComunicacionesByProyecto } from "../../../../lib/comunicaciones";
 
 type Params = { params: { id: string } | Promise<{ id: string }> };
 
@@ -97,6 +98,18 @@ export default async function Page({ params }: Params) {
   const productNameForLegal = String(tech.TECN_NombreTecnologia || tech.title || "").trim();
   const legalForTechnology = legalRecords.filter((item) => matchByProduct(item, "Tecnología", productNameForLegal));
   const trlByYear = await getTRLByTecnologiaNormalized(String(tech.TECN_NombreTecnologia || tech.title || ""));
+  const communicationsByTechnologyProject = getComunicacionesByProyecto(String(tech.TECN_NombreProyecto || tech.title || ""));
+  const communicationsByLinkedProject = linkedProject
+    ? getComunicacionesByProyecto(String(linkedProject.raw["PROY_NombreProyecto"] || linkedProject.title || ""))
+    : [];
+  const communicationItems = Array.from(
+    new Map(
+      [...communicationsByTechnologyProject, ...communicationsByLinkedProject].map((item) => [
+        `${String(item.COM_N || "")}|${String(item.COM_Titular || "")}|${String(item.COM_Fecha || "")}`,
+        item,
+      ]),
+    ).values(),
+  );
   const latestTrl = trlByYear.length > 0 ? trlByYear[trlByYear.length - 1] : null;
   
   // Obtener instituciones desde involucrados de proyectos asociados
@@ -243,6 +256,7 @@ export default async function Page({ params }: Params) {
               tech={tech}
               summaryDescription={projectSummaryDescription}
               legalItems={legalForTechnology}
+              communicationItems={communicationItems}
               exportSheetData={exportSheetData}
             />
           </div>

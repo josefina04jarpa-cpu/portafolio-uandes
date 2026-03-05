@@ -4,8 +4,15 @@ import React, { useState } from "react";
 import TimelineProteccion from "./TimelineProteccion";
 import type { LegalPI } from "../lib/legal_pi";
 import ExportSummaryPdfButton from "./ExportSummaryPdfButton";
+import type { Communication } from "../lib/comunicaciones";
+import ComunicacionesSection from "./ComunicacionesSection";
 
-type Props = { tech: Record<string, unknown>; summaryDescription?: string; legalItems?: LegalPI[] };
+type Props = {
+  tech: Record<string, unknown>;
+  summaryDescription?: string;
+  legalItems?: LegalPI[];
+  communicationItems?: Communication[];
+};
 type ExportSheetData = {
   resumen: string;
   nombreProyecto: string;
@@ -25,8 +32,8 @@ type ExportSheetData = {
 
 type TabsProps = Props & { exportSheetData?: ExportSheetData };
 
-export default function TechnologyTabs({ tech, summaryDescription, legalItems = [], exportSheetData }: TabsProps) {
-  const tabs = ["Resumen", "Detalles y potencial", "Propiedad intelectual", "Notas internas"];
+export default function TechnologyTabs({ tech, summaryDescription, legalItems = [], communicationItems = [], exportSheetData }: TabsProps) {
+  const tabs = ["Resumen", "Detalles y potencial", "Apariciones y contenidos", "Propiedad intelectual", "Notas internas"];
   const [active, setActive] = useState(0);
   const modoPublico = String(tech.TECN_Activo || tech.modoPublico || "Si").toLowerCase() === "si";
 
@@ -97,6 +104,12 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
       case 1:
         return (<div className="text-sm text-gray-700">{String(tech.TECN_Comentario || tech.longDescription || 'Sin detalles adicionales.')}</div>);
       case 2:
+        return (
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <ComunicacionesSection title="Apariciones y contenidos" items={communicationItems} />
+          </div>
+        );
+      case 3:
         return (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -174,7 +187,7 @@ export default function TechnologyTabs({ tech, summaryDescription, legalItems = 
             </div>
           </div>
         );
-      case 3:
+      case 4:
         if (modoPublico) return <div className="text-sm text-gray-500">Notas internas ocultas en modo público.</div>;
         return (<div className="text-sm text-gray-700">{String(tech.internal_notes || 'Sin notas internas.')}</div>);
       default:
