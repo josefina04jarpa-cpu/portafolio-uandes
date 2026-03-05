@@ -30,7 +30,7 @@ export default async function TopNavigation({ active = "portafolio", indicadores
                 alt="Innovación Uandes"
                 width={165}
                 height={35}
-                className="h-auto w-auto"
+                className="h-auto w-[130px] sm:w-[150px]"
                 priority
               />
             </Link>

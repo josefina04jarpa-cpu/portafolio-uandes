@@ -58,7 +58,7 @@ export default async function Page({ params }: Params) {
       alt: "Banner Subdirección de Propiedad Intelectual",
     },
     "desarrollo-tecnologico-y-comercializacion": {
-      src: "/%20background-Desarrollo-Tecnológico-y-Comercialización.png",
+      src: "/%20background-Desarrollo-Tecnologico-y-Comercializacion.png",
       alt: "Banner Subdirección de Desarrollo Tecnológico y Comercialización",
     },
     emprendimiento: {
